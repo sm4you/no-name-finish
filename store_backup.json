@@ -1,0 +1,475 @@
+{
+  "exportedAt": "2026-08-26T15:00:00.000Z",
+  "categories": [
+    {
+      "name_ar": "أطقم",
+      "name_en": "Sets",
+      "slug": "sets"
+    },
+    {
+      "name_ar": "توبس",
+      "name_en": "Blouses / shirts",
+      "slug": "blouses-shirts"
+    },
+    {
+      "name_ar": "بنطال",
+      "name_en": "Skirts / pants",
+      "slug": "skirts-pants"
+    },
+    {
+      "name_ar": "جينز",
+      "name_en": "Denims",
+      "slug": "denims"
+    },
+    {
+      "name_ar": "فساتين",
+      "name_en": "Dresses",
+      "slug": "dresses"
+    },
+    {
+      "name_ar": "جاكيتات",
+      "name_en": "Jackets",
+      "slug": "jackets"
+    }
+  ],
+  "products": [
+    {
+      "name_ar": "طقم كتان بلون الجمل",
+      "name_en": "Camel Linen Set",
+      "price": 2490,
+      "original_price": 2490,
+      "category_slug": "sets",
+      "is_new": true,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "طقم يومي بلون رمادي",
+      "name_en": "Grey Everyday Set",
+      "price": 2190,
+      "original_price": 2190,
+      "category_slug": "sets",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "طقم واسع بلون الزيتي",
+      "name_en": "Olive Relaxed Set",
+      "price": 2350,
+      "original_price": 2350,
+      "category_slug": "sets",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "طقم السفر المريح",
+      "name_en": "Comfort Travel Set",
+      "price": 1990,
+      "original_price": 1990,
+      "category_slug": "sets",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "طقم كريمي ناعم",
+      "name_en": "Soft Cream Set",
+      "price": 2250,
+      "original_price": 2250,
+      "category_slug": "sets",
+      "is_new": true,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "طقم كتان صيفي",
+      "name_en": "Summer Linen Set",
+      "price": 2590,
+      "original_price": 2590,
+      "category_slug": "sets",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "قميص Linen الناعم",
+      "name_en": "Soft Linen Shirt",
+      "price": 990,
+      "original_price": 990,
+      "category_slug": "blouses-shirts",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1605763240000-7e93b172d754?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "توب أسود مضلع",
+      "name_en": "Ribbed Black Top",
+      "price": 790,
+      "original_price": 790,
+      "category_slug": "blouses-shirts",
+      "is_new": true,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "قميص أبيض واسع",
+      "name_en": "Relaxed White Shirt",
+      "price": 1150,
+      "original_price": 1150,
+      "category_slug": "blouses-shirts",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1596755389378-c31d21fd1273?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "بلوزة بأزرار أمامية",
+      "name_en": "Front Button Blouse",
+      "price": 1050,
+      "original_price": 1050,
+      "category_slug": "blouses-shirts",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1564257577054-8e7c5f8e8e8a?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "توب كتان بلون الحجر",
+      "name_en": "Stone Linen Top",
+      "price": 890,
+      "original_price": 890,
+      "category_slug": "blouses-shirts",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "قميص أزرق مطبع",
+      "name_en": "Blue Printed Shirt",
+      "price": 1650,
+      "original_price": 1650,
+      "category_slug": "blouses-shirts",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "بنطلون الـ Wide Leg",
+      "name_en": "Wide Leg Pants",
+      "price": 1290,
+      "original_price": 1290,
+      "category_slug": "skirts-pants",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1506629905607-d9b1c7d8b7d9?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "بنطلون كتان مستقيم",
+      "name_en": "Straight Linen Pants",
+      "price": 1390,
+      "original_price": 1390,
+      "category_slug": "skirts-pants",
+      "is_new": true,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1506629905607-d9b1c7d8b7d9?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "بنطلون أسود كلاسيك",
+      "name_en": "Classic Black Pants",
+      "price": 1250,
+      "original_price": 1250,
+      "category_slug": "skirts-pants",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "بنطلون واسع بلون رملي",
+      "name_en": "Wide Sand Pants",
+      "price": 1350,
+      "original_price": 1350,
+      "category_slug": "skirts-pants",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "بنطلون جيرسي مريح",
+      "name_en": "Comfort Jersey Pants",
+      "price": 1090,
+      "original_price": 1090,
+      "category_slug": "skirts-pants",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "بنطلون جينز مستقيم",
+      "name_en": "Straight Leg Jeans",
+      "price": 1490,
+      "original_price": 1490,
+      "category_slug": "skirts-pants",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "جاكيت الـ Everyday",
+      "name_en": "Everyday Jacket",
+      "price": 1890,
+      "original_price": 1890,
+      "category_slug": "jackets",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "بليزر الـ Classic",
+      "name_en": "Classic Blazer",
+      "price": 2150,
+      "original_price": 2150,
+      "category_slug": "jackets",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "جاكيت دنيم واسع",
+      "name_en": "Oversized Denim Jacket",
+      "price": 1750,
+      "original_price": 1750,
+      "category_slug": "jackets",
+      "is_new": true,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "جاكيت كتان خفيف",
+      "name_en": "Light Linen Jacket",
+      "price": 1690,
+      "original_price": 1690,
+      "category_slug": "jackets",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1523398002811-999ca8dec234?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "كارديجان طويل",
+      "name_en": "Long Cardigan",
+      "price": 1590,
+      "original_price": 1590,
+      "category_slug": "jackets",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "بليزر بلون العاج",
+      "name_en": "Ivory Blazer",
+      "price": 2290,
+      "original_price": 2290,
+      "category_slug": "jackets",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "جينز مستقيم أزرق",
+      "name_en": "Straight Blue Jeans",
+      "price": 1490,
+      "original_price": 1490,
+      "category_slug": "denims",
+      "is_new": true,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "جينز واسع فاتح",
+      "name_en": "Light Wide Jeans",
+      "price": 1550,
+      "original_price": 1550,
+      "category_slug": "denims",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "جاكيت جينز كلاسيك",
+      "name_en": "Classic Denim Jacket",
+      "price": 1750,
+      "original_price": 1750,
+      "category_slug": "denims",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1523205565295-f8e0c1b7d3a2?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "جينز داكن مستقيم",
+      "name_en": "Dark Straight Jeans",
+      "price": 1590,
+      "original_price": 1590,
+      "category_slug": "denims",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "تنورة جينز طويلة",
+      "name_en": "Long Denim Skirt",
+      "price": 1290,
+      "original_price": 1290,
+      "category_slug": "denims",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1583496661160-fb5886a13d27?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "قميص جينز خفيف",
+      "name_en": "Light Denim Shirt",
+      "price": 1350,
+      "original_price": 1350,
+      "category_slug": "denims",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1578587018452-892bacefd3f2?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "فستان Siena الحريري",
+      "name_en": "Siena Silk Dress",
+      "price": 2450,
+      "original_price": 2450,
+      "category_slug": "dresses",
+      "is_new": true,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "فستان Laila اليومي",
+      "name_en": "Laila Day Dress",
+      "price": 1790,
+      "original_price": 1790,
+      "category_slug": "dresses",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "فستان كتان طويل",
+      "name_en": "Long Linen Dress",
+      "price": 1990,
+      "original_price": 1990,
+      "category_slug": "dresses",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "فستان صيفي واسع",
+      "name_en": "Relaxed Summer Dress",
+      "price": 1650,
+      "original_price": 1650,
+      "category_slug": "dresses",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1538805060514-97d9cc17730c?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "فستان أسود بسيط",
+      "name_en": "Simple Black Dress",
+      "price": 1850,
+      "original_price": 1850,
+      "category_slug": "dresses",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=700&q=85"
+      ]
+    },
+    {
+      "name_ar": "فستان كريمي ناعم",
+      "name_en": "Soft Cream Dress",
+      "price": 2090,
+      "original_price": 2090,
+      "category_slug": "dresses",
+      "is_new": false,
+      "in_stock": true,
+      "images": [
+        "https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?auto=format&fit=crop&w=700&q=85"
+      ]
+    }
+  ],
+  "siteSettings": {
+    "storeName": "No Name",
+    "subTitle": "Modest Wear",
+    "currency": "EGP",
+    "freeShippingThreshold": 2500
+  }
+}
