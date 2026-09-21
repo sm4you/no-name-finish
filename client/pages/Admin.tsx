@@ -30,14 +30,35 @@ import {
   AlertTriangle,
   X,
   Layers,
+  Shield,
+  Users,
+  UserPlus,
+  UserCheck,
+  Key,
+  Lock,
+  User as UserIcon,
+  Mail,
+  Check,
 } from "lucide-react";
-import { Order, Product, Category, SiteSettings, Coupon, SectionSettings, PageSettings, ProductVariant } from "@shared/api";
+import {
+  Order,
+  Product,
+  Category,
+  SiteSettings,
+  Coupon,
+  SectionSettings,
+  PageSettings,
+  ProductVariant,
+  AdminUser,
+  AdminRole,
+  AdminPermissions,
+} from "@shared/api";
 import { Button } from "@/components/ui/button";
 
 export default function Admin() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<
-    "overview" | "orders" | "products" | "sections" | "pages" | "theme" | "coupons"
+    "overview" | "orders" | "products" | "categories" | "sections" | "pages" | "theme" | "coupons" | "admins"
   >("overview");
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -47,17 +68,30 @@ export default function Admin() {
   const [sections, setSections] = useState<Record<string, SectionSettings>>({});
   const [pageSettings, setPageSettings] = useState<PageSettings | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   const [loading, setLoading] = useState(true);
   const [orderSearch, setOrderSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
+  const [adminSearch, setAdminSearch] = useState("");
 
   // Modals state
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [isNewProduct, setIsNewProduct] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Partial<Category> | null>(null);
+  const [isNewCategory, setIsNewCategory] = useState(false);
+  const [categoryModalError, setCategoryModalError] = useState("");
   const [selectedSectionKey, setSelectedSectionKey] = useState<string>("arrivals");
   const [selectedPageKey, setSelectedPageKey] = useState<"about" | "shipping" | "contact">("about");
+
+  // Admin user modal state
+  const [editingAdminUser, setEditingAdminUser] = useState<Partial<AdminUser> | null>(null);
+  const [isNewAdminUser, setIsNewAdminUser] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminModalError, setAdminModalError] = useState("");
 
   const [newCouponCode, setNewCouponCode] = useState("");
   const [newCouponDiscount, setNewCouponDiscount] = useState("10");
@@ -76,11 +110,13 @@ export default function Admin() {
     Promise.all([
       fetch("/api/admin/orders").then((r) => r.json()),
       fetch("/api/admin/products").then((r) => r.json()),
-      fetch("/api/categories").then((r) => r.json()),
+      fetch("/api/admin/categories").then((r) => r.json()),
       fetch("/api/settings").then((r) => r.json()),
       fetch("/api/admin/coupons").then((r) => r.json()),
+      fetch("/api/admin/users").then((r) => r.json()),
+      fetch("/api/admin/session").then((r) => r.json()),
     ])
-      .then(([ords, prods, cats, setsData, coups]) => {
+      .then(([ords, prods, cats, setsData, coups, usersData, sessData]) => {
         setOrders(ords || []);
         setProducts(prods || []);
         setCategories(cats || []);
@@ -90,6 +126,10 @@ export default function Admin() {
           setPageSettings(setsData.pageSettings || null);
         }
         setCoupons(coups || []);
+        setAdminUsers(Array.isArray(usersData) ? usersData : []);
+        if (sessData && sessData.user) {
+          setCurrentUser(sessData.user);
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -470,6 +510,315 @@ export default function Admin() {
     });
   };
 
+  // Admin User Management Handlers
+  const handleOpenAddAdmin = () => {
+    setIsNewAdminUser(true);
+    setAdminPassword("");
+    setAdminModalError("");
+    setEditingAdminUser({
+      username: "",
+      name: "",
+      email: "",
+      role: "manager",
+      isActive: true,
+      permissions: {
+        canManageOrders: true,
+        canManageProducts: true,
+        canManageContent: true,
+        canManageTheme: false,
+        canManageCoupons: true,
+        canManageAdmins: false,
+      },
+    });
+  };
+
+  const handleOpenEditAdmin = (user: AdminUser) => {
+    setIsNewAdminUser(false);
+    setAdminPassword("");
+    setAdminModalError("");
+    setEditingAdminUser({
+      ...user,
+      permissions: { ...user.permissions },
+    });
+  };
+
+  const handleRoleChange = (role: AdminRole) => {
+    if (!editingAdminUser) return;
+    let presetPermissions: AdminPermissions = {
+      canManageOrders: true,
+      canManageProducts: true,
+      canManageContent: true,
+      canManageTheme: true,
+      canManageCoupons: true,
+      canManageAdmins: true,
+    };
+
+    if (role === "super_admin") {
+      presetPermissions = {
+        canManageOrders: true,
+        canManageProducts: true,
+        canManageContent: true,
+        canManageTheme: true,
+        canManageCoupons: true,
+        canManageAdmins: true,
+      };
+    } else if (role === "manager") {
+      presetPermissions = {
+        canManageOrders: true,
+        canManageProducts: true,
+        canManageContent: true,
+        canManageTheme: false,
+        canManageCoupons: true,
+        canManageAdmins: false,
+      };
+    } else if (role === "editor") {
+      presetPermissions = {
+        canManageOrders: false,
+        canManageProducts: true,
+        canManageContent: true,
+        canManageTheme: true,
+        canManageCoupons: false,
+        canManageAdmins: false,
+      };
+    } else if (role === "orders_only") {
+      presetPermissions = {
+        canManageOrders: true,
+        canManageProducts: false,
+        canManageContent: false,
+        canManageTheme: false,
+        canManageCoupons: false,
+        canManageAdmins: false,
+      };
+    }
+
+    setEditingAdminUser({
+      ...editingAdminUser,
+      role,
+      permissions: presetPermissions,
+    });
+  };
+
+  const handlePermissionToggle = (key: keyof AdminPermissions) => {
+    if (!editingAdminUser || !editingAdminUser.permissions) return;
+    setEditingAdminUser({
+      ...editingAdminUser,
+      permissions: {
+        ...editingAdminUser.permissions,
+        [key]: !editingAdminUser.permissions[key],
+      },
+    });
+  };
+
+  const handleSaveAdminUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAdminUser) return;
+    setAdminModalError("");
+
+    if (!editingAdminUser.username?.trim()) {
+      setAdminModalError("اسم المستخدم مطلوب");
+      return;
+    }
+    if (isNewAdminUser && !adminPassword.trim()) {
+      setAdminModalError("كلمة المرور مطلوبة للحساب الجديد");
+      return;
+    }
+
+    try {
+      const url = isNewAdminUser ? "/api/admin/users" : `/api/admin/users/${editingAdminUser.id}`;
+      const method = isNewAdminUser ? "POST" : "PUT";
+      const payload: any = {
+        username: editingAdminUser.username.trim(),
+        name: editingAdminUser.name?.trim() || editingAdminUser.username.trim(),
+        email: editingAdminUser.email?.trim() || "",
+        role: editingAdminUser.role || "manager",
+        isActive: editingAdminUser.isActive !== false,
+        permissions: editingAdminUser.permissions,
+      };
+
+      if (adminPassword.trim()) {
+        payload.password = adminPassword.trim();
+      }
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "حدث خطأ أثناء حفظ بيانات المشرف");
+      }
+
+      if (isNewAdminUser) {
+        setAdminUsers((prev) => [...prev, data.user]);
+        showToast("تم إنشاء حساب المشرف الجديد بنجاح!");
+      } else {
+        setAdminUsers((prev) => prev.map((u) => (u.id === data.user.id ? data.user : u)));
+        showToast("تم تحديث بيانات وصلاحيات المشرف بنجاح!");
+      }
+
+      setEditingAdminUser(null);
+    } catch (err: any) {
+      setAdminModalError(err.message || "حدث خطأ أثناء الحفظ");
+    }
+  };
+
+  const handleDeleteAdminUser = async (user: AdminUser) => {
+    if (!window.confirm(`هل أنت متأكد من رغبتك في حذف حساب المشرف (${user.name || user.username})؟`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "تعذر حذف الحساب");
+      }
+
+      setAdminUsers((prev) => prev.filter((u) => u.id !== user.id));
+      showToast("تم حذف حساب المشرف بنجاح");
+    } catch (err: any) {
+      alert(err.message || "حدث خطأ أثناء الحذف");
+    }
+  };
+
+  const handleToggleAdminStatus = async (user: AdminUser) => {
+    try {
+      const nextStatus = !user.isActive;
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: nextStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "تعذر تغيير حالة الحساب");
+      }
+
+      setAdminUsers((prev) => prev.map((u) => (u.id === user.id ? data.user : u)));
+      showToast(nextStatus ? `تم تفعيل حساب ${user.name || user.username}` : `تم تعطيل حساب ${user.name || user.username}`);
+    } catch (err: any) {
+      alert(err.message || "حدث خطأ");
+    }
+  };
+
+  // Category Management Handlers
+  const handleOpenNewCategory = () => {
+    setIsNewCategory(true);
+    setCategoryModalError("");
+    setEditingCategory({
+      slug: "",
+      name_ar: "",
+      name_en: "",
+      description_ar: "",
+      description_en: "",
+      image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=85",
+      is_active: true,
+      sort_order: categories.length + 1,
+    });
+  };
+
+  const handleOpenEditCategory = (cat: Category) => {
+    setIsNewCategory(false);
+    setCategoryModalError("");
+    setEditingCategory({ ...cat });
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCategory) return;
+    setCategoryModalError("");
+
+    if (!editingCategory.name_ar?.trim() || !editingCategory.name_en?.trim()) {
+      setCategoryModalError("اسم القسم بالعربية والإنجليزية مطلوب");
+      return;
+    }
+
+    try {
+      const url = isNewCategory
+        ? "/api/admin/categories"
+        : `/api/admin/categories/${editingCategory.id || editingCategory.slug}`;
+      const method = isNewCategory ? "POST" : "PATCH";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingCategory),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "حدث خطأ أثناء حفظ بيانات القسم");
+      }
+
+      if (isNewCategory) {
+        setCategories((prev) => [...prev, data.category]);
+        showToast("تم إضافة القسم بنجاح");
+      } else {
+        setCategories((prev) =>
+          prev.map((c) =>
+            (c.id && c.id === data.category.id) || c.slug === data.category.slug
+              ? data.category
+              : c
+          )
+        );
+        showToast("تم تحديث بيانات القسم بنجاح");
+      }
+
+      setEditingCategory(null);
+    } catch (err: any) {
+      setCategoryModalError(err.message || "فشل حفظ القسم");
+    }
+  };
+
+  const handleDeleteCategory = async (cat: Category) => {
+    if (!window.confirm(`هل أنت متأكد من رغبتك في حذف قسم "${cat.name_ar}"؟`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/categories/${cat.id || cat.slug}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "فشل حذف القسم");
+      }
+
+      setCategories((prev) => prev.filter((c) => (c.id ? c.id !== cat.id : c.slug !== cat.slug)));
+      showToast("تم حذف القسم بنجاح");
+    } catch (err: any) {
+      alert(err.message || "حدث خطأ أثناء حذف القسم");
+    }
+  };
+
+  const handleToggleCategoryActive = async (cat: Category) => {
+    const nextStatus = !(cat.is_active !== false);
+    try {
+      const res = await fetch(`/api/admin/categories/${cat.id || cat.slug}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: nextStatus }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCategories((prev) =>
+          prev.map((c) =>
+            (c.id && c.id === cat.id) || c.slug === cat.slug
+              ? { ...c, is_active: nextStatus }
+              : c
+          )
+        );
+        showToast(nextStatus ? `تم تفعيل عرض قسم "${cat.name_ar}" في المتجر` : `تم إخفاء قسم "${cat.name_ar}" من المتجر`);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // Stats
   const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
   const pendingOrdersCount = orders.filter((o) => o.paymentStatus === "pending" || o.fulfillmentStatus === "new").length;
@@ -486,6 +835,20 @@ export default function Admin() {
       (p.name_ar || p.name || "").toLowerCase().includes(productSearch.toLowerCase()) ||
       (p.name_en || "").toLowerCase().includes(productSearch.toLowerCase()) ||
       (p.badge || "").toLowerCase().includes(productSearch.toLowerCase())
+  );
+
+  const filteredCategories = categories.filter(
+    (c) =>
+      (c.name_ar || "").toLowerCase().includes(categorySearch.toLowerCase()) ||
+      (c.name_en || "").toLowerCase().includes(categorySearch.toLowerCase()) ||
+      (c.slug || "").toLowerCase().includes(categorySearch.toLowerCase())
+  );
+
+  const filteredAdminUsers = adminUsers.filter(
+    (u) =>
+      (u.name || "").toLowerCase().includes(adminSearch.toLowerCase()) ||
+      (u.username || "").toLowerCase().includes(adminSearch.toLowerCase()) ||
+      (u.email || "").toLowerCase().includes(adminSearch.toLowerCase())
   );
 
   if (loading) {
@@ -525,6 +888,25 @@ export default function Admin() {
             </div>
 
             <div className="flex items-center gap-3">
+              {currentUser && (
+                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-[#faf8f5] border border-[#e4ded6] rounded-xl text-xs">
+                  <div className="w-6 h-6 rounded-full bg-[#1c1817] text-[#e6b980] flex items-center justify-center font-bold text-[11px]">
+                    {currentUser.name ? currentUser.name.slice(0, 1) : "A"}
+                  </div>
+                  <div className="flex flex-col text-right">
+                    <span className="font-bold text-[#1c1817] leading-tight text-[11px]">{currentUser.name || currentUser.username}</span>
+                    <span className="text-[9px] text-[#8a5d3b] font-semibold">
+                      {currentUser.role === "super_admin"
+                        ? "👑 مدير عام رئيسي"
+                        : currentUser.role === "manager"
+                        ? "💼 مدير متجر"
+                        : currentUser.role === "editor"
+                        ? "🎨 محرر محتوى"
+                        : "📦 مسؤول طلبات"}
+                    </span>
+                  </div>
+                </div>
+              )}
               <Link
                 to="/"
                 target="_blank"
@@ -587,6 +969,18 @@ export default function Admin() {
               <span className="text-[10px] opacity-75">({products.length})</span>
             </button>
             <button
+              onClick={() => setActiveTab("categories")}
+              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition whitespace-nowrap ${
+                activeTab === "categories"
+                  ? "bg-[#1c1817] text-white shadow-xs"
+                  : "text-[#554e4a] hover:text-[#1c1817] hover:bg-[#f2ece4]"
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              <span>الأقسام والتصنيفات</span>
+              <span className="text-[10px] opacity-75">({categories.length})</span>
+            </button>
+            <button
               onClick={() => setActiveTab("theme")}
               className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition whitespace-nowrap ${
                 activeTab === "theme"
@@ -632,6 +1026,20 @@ export default function Admin() {
             >
               <Percent className="w-4 h-4" />
               <span>كوبونات الخصم</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("admins")}
+              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition whitespace-nowrap ${
+                activeTab === "admins"
+                  ? "bg-[#1c1817] text-white shadow-xs"
+                  : "text-[#554e4a] hover:text-[#1c1817] hover:bg-[#f2ece4]"
+              }`}
+            >
+              <Shield className="w-4 h-4 text-[#d4775c]" />
+              <span>حسابات الأدمن والصلاحيات</span>
+              <span className="text-[10px] bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded font-mono font-bold">
+                {adminUsers.length}
+              </span>
             </button>
           </nav>
         </div>
@@ -1074,6 +1482,188 @@ export default function Admin() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* ======================= CATEGORIES MANAGEMENT TAB ======================= */}
+        {activeTab === "categories" && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-serif font-bold text-[#1c1817]">إدارة الأقسام والتصنيفات</h1>
+                <p className="text-xs text-[#7e746c] mt-1">
+                  التحكم في أقسام المتجر الستة، إمكانية إضافة أقسام جديدة، تعديل أسمائها وصورها، أو إخفاء وحذف أي قسم.
+                </p>
+              </div>
+              <Button
+                onClick={handleOpenNewCategory}
+                className="bg-[#1c1817] hover:bg-[#332e2c] text-white text-xs rounded-xl shadow-xs"
+              >
+                <Plus className="w-4 h-4 ml-1.5" />
+                إضافة قسم جديد
+              </Button>
+            </div>
+
+            {/* Category Stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-white p-4 rounded-2xl border border-[#ece6df] shadow-xs">
+                <span className="text-[10px] text-[#7e746c] font-semibold block">إجمالي الأقسام</span>
+                <span className="text-2xl font-bold text-[#1c1817] mt-1 block">{categories.length}</span>
+              </div>
+              <div className="bg-white p-4 rounded-2xl border border-[#ece6df] shadow-xs">
+                <span className="text-[10px] text-[#7e746c] font-semibold block">الأقسام المفعلة بالمتجر</span>
+                <span className="text-2xl font-bold text-emerald-600 mt-1 block">
+                  {categories.filter((c) => c.is_active !== false).length}
+                </span>
+              </div>
+              <div className="bg-white p-4 rounded-2xl border border-[#ece6df] shadow-xs">
+                <span className="text-[10px] text-[#7e746c] font-semibold block">الأقسام المخفية</span>
+                <span className="text-2xl font-bold text-amber-600 mt-1 block">
+                  {categories.filter((c) => c.is_active === false).length}
+                </span>
+              </div>
+              <div className="bg-white p-4 rounded-2xl border border-[#ece6df] shadow-xs">
+                <span className="text-[10px] text-[#7e746c] font-semibold block">إجمالي المنتجات المرتبطة</span>
+                <span className="text-2xl font-bold text-[#8a5d3b] mt-1 block">{products.length}</span>
+              </div>
+            </div>
+
+            {/* Categories Table / Cards */}
+            <div className="bg-white rounded-2xl border border-[#ece6df] p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#f4f0eb]">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-[#8a5d3b]" />
+                  <h2 className="text-base font-bold text-[#1c1817]">
+                    أقسام وتصنيفات المتجر ({filteredCategories.length})
+                  </h2>
+                </div>
+
+                {/* Search box */}
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-[#7e746c]" />
+                  <input
+                    type="text"
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    placeholder="بحث في الأقسام..."
+                    className="w-full pl-3 pr-8 py-1.5 text-xs rounded-xl border border-[#e4ded6] bg-[#faf8f5] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                {filteredCategories.map((cat, index) => {
+                  const linkedCount = products.filter(
+                    (p) =>
+                      p.category_slug === cat.slug ||
+                      p.category_slug === cat.name_en ||
+                      p.category_slug === cat.name_ar ||
+                      p.category_id === cat.id
+                  ).length;
+                  const isActive = cat.is_active !== false;
+
+                  return (
+                    <div
+                      key={cat.id || cat.slug || index}
+                      className={`relative rounded-2xl border p-4 transition flex flex-col justify-between ${
+                        isActive
+                          ? "bg-white border-[#ece6df] hover:border-[#8a5d3b]/50 shadow-xs"
+                          : "bg-gray-50 border-gray-200 opacity-70"
+                      }`}
+                    >
+                      <div>
+                        {/* Header & Thumbnail */}
+                        <div className="flex items-start gap-3">
+                          <div className="w-16 h-20 rounded-xl overflow-hidden bg-[#faf8f5] border border-[#ece6df] shrink-0">
+                            <img
+                              src={
+                                cat.image ||
+                                "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=85"
+                              }
+                              alt={cat.name_en}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[10px] font-mono font-bold text-[#8a5d3b] bg-[#faf6f0] px-2 py-0.5 rounded border border-[#8a5d3b]/20">
+                                #{cat.sort_order ?? index + 1}
+                              </span>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  isActive
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                    : "bg-gray-200 text-gray-700 border border-gray-300"
+                                }`}
+                              >
+                                {isActive ? "ظاهر بالمتجر" : "مخفي"}
+                              </span>
+                            </div>
+
+                            <h3 className="font-bold text-sm text-[#1c1817] mt-1.5 truncate">
+                              {cat.name_ar}
+                            </h3>
+                            <span className="text-xs text-[#7e746c] block font-serif truncate">
+                              {cat.name_en}
+                            </span>
+                            <span className="text-[10px] text-[#8a5d3b] font-mono block mt-0.5">
+                              slug: {cat.slug}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        {(cat.description_ar || cat.description_en) && (
+                          <p className="text-[11px] text-[#554e4a] line-clamp-2 mt-3 bg-[#faf8f5] p-2 rounded-lg border border-[#f4f0eb]">
+                            {cat.description_ar || cat.description_en}
+                          </p>
+                        )}
+
+                        {/* Linked Products Count */}
+                        <div className="mt-3 flex items-center justify-between text-xs text-[#7e746c] pt-2 border-t border-[#f4f0eb]">
+                          <span>عدد القطع المرتبطة:</span>
+                          <span className="font-bold text-[#1c1817] bg-[#f0eae1] px-2 py-0.5 rounded-full text-[11px]">
+                            {linkedCount} قطعة
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="mt-4 pt-3 border-t border-[#f4f0eb] flex items-center justify-between gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenEditCategory(cat)}
+                          className="flex-1 h-8 text-xs border-[#e4ded6] hover:bg-[#f5ede6] hover:text-[#8a5d3b]"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 mr-1" />
+                          تعديل القسم
+                        </Button>
+                        <button
+                          onClick={() => handleToggleCategoryActive(cat)}
+                          className={`p-2 rounded-xl text-xs font-semibold border transition ${
+                            isActive
+                              ? "text-amber-700 bg-amber-50 border-amber-200 hover:bg-amber-100"
+                              : "text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100"
+                          }`}
+                          title={isActive ? "إخفاء القسم من المتجر" : "تفعيل وعرض القسم"}
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(cat)}
+                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 rounded-xl transition"
+                          title="حذف القسم"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
@@ -2064,6 +2654,292 @@ export default function Admin() {
             </div>
           </div>
         )}
+
+        {/* ======================= ADMINS & ROLES TAB ======================= */}
+        {activeTab === "admins" && (
+          <div className="space-y-6 max-w-6xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-serif font-bold text-[#1c1817] flex items-center gap-2">
+                  <Shield className="w-6 h-6 text-[#8a5d3b]" />
+                  <span>حسابات الأدمن وصلاحيات فريق العمل</span>
+                </h1>
+                <p className="text-xs text-[#7e746c] mt-1">
+                  إنشاء وتعديل وإلغاء حسابات المشرفين، وتحديد الأدوار والصلاحيات الدقيقة لكل عضو في الفريق
+                </p>
+              </div>
+
+              <Button
+                onClick={handleOpenAddAdmin}
+                className="bg-[#1c1817] hover:bg-[#332e2c] text-white text-xs px-5 h-10 rounded-xl shadow-xs flex items-center gap-2 self-start sm:self-auto"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>إضافة مشرف جديد</span>
+              </Button>
+            </div>
+
+            {/* Roles Info Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="bg-white p-4 rounded-2xl border border-amber-200/80 bg-amber-50/20 space-y-1.5">
+                <div className="flex items-center gap-2 font-bold text-xs text-amber-950">
+                  <span className="text-sm">👑</span>
+                  <span>مدير عام (Super Admin)</span>
+                </div>
+                <p className="text-[11px] text-[#7e746c] leading-relaxed">
+                  صلاحيات مطلقة للتحكم الكامل بالمتجر، المنتجات، المبيعات، وإنشاء وإلغاء حسابات المشرفين.
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-blue-200/80 bg-blue-50/20 space-y-1.5">
+                <div className="flex items-center gap-2 font-bold text-xs text-blue-950">
+                  <span className="text-sm">💼</span>
+                  <span>مدير متجر (Manager)</span>
+                </div>
+                <p className="text-[11px] text-[#7e746c] leading-relaxed">
+                  إدارة شاملة للمنتجات والمخزون، متابعة وتحديث الطلبات، وإنشاء كوبونات الخصم.
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-purple-200/80 bg-purple-50/20 space-y-1.5">
+                <div className="flex items-center gap-2 font-bold text-xs text-purple-950">
+                  <span className="text-sm">🎨</span>
+                  <span>محرر محتوى (Editor)</span>
+                </div>
+                <p className="text-[11px] text-[#7e746c] leading-relaxed">
+                  التحكم في تصميم السيكشنات، البانرات، رفع الفيديوهات والصور، وتنسيق صفحات المتجر.
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/20 space-y-1.5">
+                <div className="flex items-center gap-2 font-bold text-xs text-emerald-950">
+                  <span className="text-sm">📦</span>
+                  <span>مسؤول طلبات (Orders)</span>
+                </div>
+                <p className="text-[11px] text-[#7e746c] leading-relaxed">
+                  متابعة الطلبات الجديدة، مراجعة إيصالات التحويل، وتحديث حالات الشحن والتوصيل فقط.
+                </p>
+              </div>
+            </div>
+
+            {/* Admin Users Table / List */}
+            <div className="bg-white rounded-2xl border border-[#ece6df] p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#f4f0eb]">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#8a5d3b]" />
+                  <h2 className="text-base font-bold text-[#1c1817]">
+                    قائمة المشرفين المسجلين ({filteredAdminUsers.length})
+                  </h2>
+                </div>
+
+                {/* Search box */}
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-[#7e746c]" />
+                  <input
+                    type="text"
+                    value={adminSearch}
+                    onChange={(e) => setAdminSearch(e.target.value)}
+                    placeholder="بحث بالاسم أو اسم المستخدم..."
+                    className="w-full pl-3 pr-8 py-1.5 text-xs rounded-xl border border-[#e4ded6] bg-[#faf8f5] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-xs">
+                  <thead>
+                    <tr className="border-b border-[#f4f0eb] text-[#7e746c]">
+                      <th className="pb-3 font-semibold">المشرف</th>
+                      <th className="pb-3 font-semibold">اسم الدخول</th>
+                      <th className="pb-3 font-semibold">الدور</th>
+                      <th className="pb-3 font-semibold">الصلاحيات</th>
+                      <th className="pb-3 font-semibold">الحالة</th>
+                      <th className="pb-3 font-semibold">آخر دخول</th>
+                      <th className="pb-3 font-semibold text-center">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#f4f0eb]">
+                    {filteredAdminUsers.map((user) => {
+                      const isSuper = user.role === "super_admin";
+                      const isCurrentUser = currentUser && currentUser.id === user.id;
+
+                      return (
+                        <tr key={user.id} className="hover:bg-[#faf8f5] transition">
+                          {/* Name & Avatar */}
+                          <td className="py-3.5">
+                            <div className="flex items-center gap-2.5">
+                              <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+                                  isSuper
+                                    ? "bg-[#1c1817] text-[#e6b980]"
+                                    : "bg-[#f0eae1] text-[#8a5d3b]"
+                                }`}
+                              >
+                                {user.name ? user.name.slice(0, 1) : user.username.slice(0, 1).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="font-bold text-[#1c1817] flex items-center gap-1.5">
+                                  <span>{user.name || user.username}</span>
+                                  {isCurrentUser && (
+                                    <span className="text-[9px] bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded font-medium">
+                                      أنت
+                                    </span>
+                                  )}
+                                </div>
+                                {user.email && (
+                                  <span className="text-[10px] text-[#7e746c] block">{user.email}</span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Username */}
+                          <td className="py-3.5 font-mono text-[#554e4a] font-medium">
+                            @{user.username}
+                          </td>
+
+                          {/* Role */}
+                          <td className="py-3.5">
+                            {user.role === "super_admin" && (
+                              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-200 inline-flex items-center gap-1">
+                                <span>👑</span>
+                                <span>مدير عام</span>
+                              </span>
+                            )}
+                            {user.role === "manager" && (
+                              <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-bold border border-blue-200 inline-flex items-center gap-1">
+                                <span>💼</span>
+                                <span>مدير متجر</span>
+                              </span>
+                            )}
+                            {user.role === "editor" && (
+                              <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 text-[10px] font-bold border border-purple-200 inline-flex items-center gap-1">
+                                <span>🎨</span>
+                                <span>محرر وتصميم</span>
+                              </span>
+                            )}
+                            {user.role === "orders_only" && (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-bold border border-emerald-200 inline-flex items-center gap-1">
+                                <span>📦</span>
+                                <span>مسؤول طلبات</span>
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Permissions */}
+                          <td className="py-3.5">
+                            <div className="flex flex-wrap gap-1 max-w-xs">
+                              {user.permissions?.canManageOrders && (
+                                <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 text-[9px] font-medium">
+                                  الطلبات
+                                </span>
+                              )}
+                              {user.permissions?.canManageProducts && (
+                                <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 text-[9px] font-medium">
+                                  المنتجات
+                                </span>
+                              )}
+                              {user.permissions?.canManageContent && (
+                                <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 text-[9px] font-medium">
+                                  السيكشنات
+                                </span>
+                              )}
+                              {user.permissions?.canManageTheme && (
+                                <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 text-[9px] font-medium">
+                                  القوالب
+                                </span>
+                              )}
+                              {user.permissions?.canManageCoupons && (
+                                <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 text-[9px] font-medium">
+                                  الكوبونات
+                                </span>
+                              )}
+                              {user.permissions?.canManageAdmins && (
+                                <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">
+                                  المشرفين
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3.5">
+                            <button
+                              onClick={() => handleToggleAdminStatus(user)}
+                              disabled={isSuper && adminUsers.filter((u) => u.role === "super_admin" && u.isActive).length <= 1 && user.isActive}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition flex items-center gap-1 ${
+                                user.isActive !== false
+                                  ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                                  : "bg-red-100 text-red-800 hover:bg-red-200"
+                              }`}
+                              title="اضغط للتبديل بين التفعيل والتعطيل"
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  user.isActive !== false ? "bg-emerald-600" : "bg-red-600"
+                                }`}
+                              />
+                              <span>{user.isActive !== false ? "مفعل" : "معطل"}</span>
+                            </button>
+                          </td>
+
+                          {/* Last Login */}
+                          <td className="py-3.5 text-[#7e746c] text-[10px]">
+                            {user.lastLoginAt ? (
+                              new Date(user.lastLoginAt).toLocaleString("ar-EG", {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })
+                            ) : (
+                              <span className="italic">لم يسجل بعد</span>
+                            )}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-3.5 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                onClick={() => handleOpenEditAdmin(user)}
+                                className="p-1.5 text-[#554e4a] hover:text-[#1c1817] hover:bg-[#ece6df] rounded-lg transition"
+                                title="تعديل بيانات المشرف والصلاحيات"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={() => handleDeleteAdminUser(user)}
+                                disabled={isSuper && adminUsers.filter((u) => u.role === "super_admin").length <= 1}
+                                className={`p-1.5 rounded-lg transition ${
+                                  isSuper && adminUsers.filter((u) => u.role === "super_admin").length <= 1
+                                    ? "text-gray-300 cursor-not-allowed"
+                                    : "text-red-500 hover:text-red-700 hover:bg-red-50"
+                                }`}
+                                title={
+                                  isSuper && adminUsers.filter((u) => u.role === "super_admin").length <= 1
+                                    ? "لا يمكن حذف المدير العام الرئيسي الأخير"
+                                    : "حذف حساب المشرف"
+                                }
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {filteredAdminUsers.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-[#7e746c]">
+                          لم يتم العثور على حسابات مشرفين مطابقة للبحث
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* ======================= PRODUCT EDIT/CREATE MODAL ======================= */}
@@ -2724,6 +3600,453 @@ export default function Admin() {
                 </select>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================= ADMIN USER CREATE/EDIT MODAL ======================= */}
+      {editingAdminUser && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 max-h-[90vh] overflow-y-auto border border-[#ece6df] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#f4f0eb] pb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-[#1c1817] text-[#e6b980] flex items-center justify-center">
+                  <Shield className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="font-serif font-bold text-lg text-[#1c1817]">
+                    {isNewAdminUser ? "إضافة حساب مشرف جديد" : `تعديل حساب: ${editingAdminUser.name || editingAdminUser.username}`}
+                  </h2>
+                  <p className="text-[11px] text-[#7e746c]">
+                    {isNewAdminUser
+                      ? "أدخلي بيانات المشرف وحددي الدور والصلاحيات المسموح بها"
+                      : "تعديل البيانات الأساسية، كلمة المرور، والصلاحيات"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingAdminUser(null)}
+                className="p-1 rounded-full text-[#7e746c] hover:bg-[#faf8f5]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Error Banner */}
+            {adminModalError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{adminModalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveAdminUser} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Display Name */}
+                <div>
+                  <label className="block font-semibold text-[#1c1817] mb-1">
+                    الاسم الكامل / الظاهر *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editingAdminUser.name || ""}
+                    onChange={(e) => setEditingAdminUser({ ...editingAdminUser, name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-[#e4ded6] bg-[#faf8f5] focus:outline-none"
+                    placeholder="مثال: سارة أحمد"
+                  />
+                </div>
+
+                {/* Username */}
+                <div>
+                  <label className="block font-semibold text-[#1c1817] mb-1">
+                    اسم المستخدم لتسجيل الدخول *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editingAdminUser.username || ""}
+                    onChange={(e) =>
+                      setEditingAdminUser({
+                        ...editingAdminUser,
+                        username: e.target.value.toLowerCase().replace(/\s+/g, ""),
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-[#e4ded6] bg-[#faf8f5] focus:outline-none font-mono"
+                    placeholder="sarah_admin"
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="block font-semibold text-[#1c1817] mb-1">
+                    البريد الإلكتروني (اختياري)
+                  </label>
+                  <input
+                    type="email"
+                    value={editingAdminUser.email || ""}
+                    onChange={(e) => setEditingAdminUser({ ...editingAdminUser, email: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-[#e4ded6] bg-[#faf8f5] focus:outline-none font-mono"
+                    placeholder="sarah@example.com"
+                  />
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label className="block font-semibold text-[#1c1817] mb-1">
+                    كلمة المرور {isNewAdminUser ? "*" : "(تغيير اختياري)"}
+                  </label>
+                  <input
+                    type="text"
+                    required={isNewAdminUser}
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#e4ded6] bg-[#faf8f5] focus:outline-none font-mono"
+                    placeholder={isNewAdminUser ? "اكتبي كلمة مرور قوية..." : "اتركيها فارغة للإبقاء على الحالية"}
+                  />
+                </div>
+              </div>
+
+              {/* Role Selection */}
+              <div className="p-3.5 bg-[#faf8f5] rounded-2xl border border-[#ece6df] space-y-2">
+                <label className="block font-bold text-[#1c1817]">الدور الوظيفي الأساسي</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { id: "super_admin", label: "👑 مدير عام", desc: "كامل الصلاحيات" },
+                    { id: "manager", label: "💼 مدير متجر", desc: "منتجات وطلبات" },
+                    { id: "editor", label: "🎨 محرر محتوى", desc: "سيكشنات وصفحات" },
+                    { id: "orders_only", label: "📦 مسؤول طلبات", desc: "شحن ودفع فقط" },
+                  ].map((r) => {
+                    const active = editingAdminUser.role === r.id;
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => handleRoleChange(r.id as AdminRole)}
+                        className={`p-2.5 rounded-xl border text-right transition flex flex-col justify-between ${
+                          active
+                            ? "bg-[#1c1817] text-white border-[#1c1817] shadow-xs"
+                            : "bg-white text-[#554e4a] border-[#e4ded6] hover:border-black"
+                        }`}
+                      >
+                        <span className="font-bold text-xs">{r.label}</span>
+                        <span className={`text-[10px] mt-1 ${active ? "text-amber-200" : "text-[#7e746c]"}`}>
+                          {r.desc}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Permissions Checklist */}
+              <div className="p-4 bg-white rounded-2xl border border-[#ece6df] space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-[#1c1817]">مصفوفة الصلاحيات المخصصة</label>
+                  <span className="text-[10px] text-[#7e746c]">
+                    (يمكنك تخصيص وتعديل أي صلاحية بشكل منفرد)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <label className="flex items-center gap-2 p-2 rounded-xl bg-[#faf8f5] border border-[#ece6df] hover:bg-[#f2ece4] cursor-pointer transition">
+                    <input
+                      type="checkbox"
+                      checked={editingAdminUser.permissions?.canManageOrders ?? false}
+                      onChange={() => handlePermissionToggle("canManageOrders")}
+                      className="w-4 h-4 rounded accent-[#8a5d3b]"
+                    />
+                    <span className="font-medium text-[#1c1817]">إدارة ومتابعة الطلبات وتأكيد الدفع</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 rounded-xl bg-[#faf8f5] border border-[#ece6df] hover:bg-[#f2ece4] cursor-pointer transition">
+                    <input
+                      type="checkbox"
+                      checked={editingAdminUser.permissions?.canManageProducts ?? false}
+                      onChange={() => handlePermissionToggle("canManageProducts")}
+                      className="w-4 h-4 rounded accent-[#8a5d3b]"
+                    />
+                    <span className="font-medium text-[#1c1817]">إدارة وتعديل المنتجات والمخزون</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 rounded-xl bg-[#faf8f5] border border-[#ece6df] hover:bg-[#f2ece4] cursor-pointer transition">
+                    <input
+                      type="checkbox"
+                      checked={editingAdminUser.permissions?.canManageContent ?? false}
+                      onChange={() => handlePermissionToggle("canManageContent")}
+                      className="w-4 h-4 rounded accent-[#8a5d3b]"
+                    />
+                    <span className="font-medium text-[#1c1817]">تعديل محتوى السيكشنات والصفحات</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 rounded-xl bg-[#faf8f5] border border-[#ece6df] hover:bg-[#f2ece4] cursor-pointer transition">
+                    <input
+                      type="checkbox"
+                      checked={editingAdminUser.permissions?.canManageTheme ?? false}
+                      onChange={() => handlePermissionToggle("canManageTheme")}
+                      className="w-4 h-4 rounded accent-[#8a5d3b]"
+                    />
+                    <span className="font-medium text-[#1c1817]">تخصيص القوالب والألوان والتصميم</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 rounded-xl bg-[#faf8f5] border border-[#ece6df] hover:bg-[#f2ece4] cursor-pointer transition">
+                    <input
+                      type="checkbox"
+                      checked={editingAdminUser.permissions?.canManageCoupons ?? false}
+                      onChange={() => handlePermissionToggle("canManageCoupons")}
+                      className="w-4 h-4 rounded accent-[#8a5d3b]"
+                    />
+                    <span className="font-medium text-[#1c1817]">إنشاء وإدارة كوبونات الخصم</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 rounded-xl bg-[#faf8f5] border border-[#ece6df] hover:bg-[#f2ece4] cursor-pointer transition">
+                    <input
+                      type="checkbox"
+                      checked={editingAdminUser.permissions?.canManageCategories ?? false}
+                      onChange={() => handlePermissionToggle("canManageCategories")}
+                      className="w-4 h-4 rounded accent-[#8a5d3b]"
+                    />
+                    <span className="font-medium text-[#1c1817]">التحكم في الأقسام والتصنيفات</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 rounded-xl bg-[#faf8f5] border border-[#ece6df] hover:bg-[#f2ece4] cursor-pointer transition">
+                    <input
+                      type="checkbox"
+                      checked={editingAdminUser.permissions?.canManageAdmins ?? false}
+                      onChange={() => handlePermissionToggle("canManageAdmins")}
+                      className="w-4 h-4 rounded accent-[#8a5d3b]"
+                    />
+                    <span className="font-bold text-amber-900">إدارة حسابات المشرفين (Super Admin)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Active Toggle */}
+              <div className="flex items-center justify-between p-3 bg-[#faf8f5] rounded-xl border border-[#ece6df]">
+                <div>
+                  <span className="font-bold text-[#1c1817] block">حالة الحساب</span>
+                  <span className="text-[10px] text-[#7e746c]">
+                    السماح للمشرف بتسجيل الدخول والوصول للوحة التحكم
+                  </span>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-[#8a5d3b]">
+                  <input
+                    type="checkbox"
+                    checked={editingAdminUser.isActive !== false}
+                    onChange={(e) =>
+                      setEditingAdminUser({ ...editingAdminUser, isActive: e.target.checked })
+                    }
+                    className="w-4 h-4 rounded accent-[#8a5d3b]"
+                  />
+                  <span>{editingAdminUser.isActive !== false ? "مفعل ونشط" : "معطل"}</span>
+                </label>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-[#f4f0eb]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditingAdminUser(null)}
+                  className="rounded-xl"
+                >
+                  إلغاء
+                </Button>
+                <Button type="submit" className="bg-[#1c1817] hover:bg-[#332e2c] text-white rounded-xl px-6">
+                  <Save className="w-4 h-4 ml-1.5" />
+                  {isNewAdminUser ? "إنشاء حساب المشرف" : "حفظ التعديلات"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================= CATEGORY EDIT / CREATE MODAL ======================= */}
+      {editingCategory && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl space-y-5">
+            <div className="flex items-center justify-between pb-4 border-b border-[#ece6df]">
+              <h2 className="text-lg font-bold text-[#1c1817] flex items-center gap-2">
+                <Layers className="w-5 h-5 text-[#8a5d3b]" />
+                <span>{isNewCategory ? "إضافة قسم جديد للمتجر" : `تعديل قسم: ${editingCategory.name_ar}`}</span>
+              </h2>
+              <button
+                onClick={() => setEditingCategory(null)}
+                className="p-1.5 hover:bg-[#f4f0eb] rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {categoryModalError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{categoryModalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveCategory} className="space-y-4 text-xs">
+              {/* Arabic Name */}
+              <div>
+                <label className="block font-semibold text-[#1c1817] mb-1">
+                  اسم القسم بالعربية * (مثال: دريسات / فساتين)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingCategory.name_ar || ""}
+                  onChange={(e) => setEditingCategory({ ...editingCategory, name_ar: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-[#e4ded6] bg-[#faf8f5] focus:outline-none"
+                  placeholder="مثال: مجموعات صيفية"
+                />
+              </div>
+
+              {/* English Name */}
+              <div>
+                <label className="block font-semibold text-[#1c1817] mb-1">
+                  اسم القسم بالإنجليزية * (مثال: Dresses)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingCategory.name_en || ""}
+                  onChange={(e) => {
+                    const name_en = e.target.value;
+                    const autoSlug = isNewCategory
+                      ? name_en.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+                      : editingCategory.slug;
+                    setEditingCategory({
+                      ...editingCategory,
+                      name_en,
+                      slug: isNewCategory ? autoSlug : editingCategory.slug,
+                    });
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border border-[#e4ded6] bg-[#faf8f5] focus:outline-none font-serif"
+                  placeholder="e.g. Dresses"
+                />
+              </div>
+
+              {/* Slug */}
+              <div>
+                <label className="block font-semibold text-[#1c1817] mb-1">
+                  معرّف الرابط (Slug) * (يستخدم في روابط المنتجات والأقسام)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingCategory.slug || ""}
+                  onChange={(e) =>
+                    setEditingCategory({
+                      ...editingCategory,
+                      slug: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "-"),
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-[#e4ded6] bg-[#faf8f5] focus:outline-none font-mono"
+                  placeholder="dresses"
+                />
+              </div>
+
+              {/* Image URL */}
+              <div>
+                <label className="block font-semibold text-[#1c1817] mb-1">
+                  رابط صورة القسم
+                </label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="url"
+                    value={editingCategory.image || ""}
+                    onChange={(e) => setEditingCategory({ ...editingCategory, image: e.target.value })}
+                    className="flex-1 px-3 py-2 rounded-xl border border-[#e4ded6] bg-[#faf8f5] focus:outline-none text-left font-mono text-[11px]"
+                    placeholder="https://images.unsplash.com/..."
+                  />
+                  {editingCategory.image && (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#ece6df] shrink-0 bg-[#faf8f5]">
+                      <img
+                        src={editingCategory.image}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Arabic Description */}
+              <div>
+                <label className="block font-semibold text-[#1c1817] mb-1">
+                  وصف القسم بالعربية (اختياري)
+                </label>
+                <textarea
+                  rows={2}
+                  value={editingCategory.description_ar || ""}
+                  onChange={(e) => setEditingCategory({ ...editingCategory, description_ar: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-[#e4ded6] bg-[#faf8f5] focus:outline-none"
+                  placeholder="وصف مختصر للقسم يظهر عند التصفح..."
+                />
+              </div>
+
+              {/* English Description */}
+              <div>
+                <label className="block font-semibold text-[#1c1817] mb-1">
+                  وصف القسم بالإنجليزية (اختياري)
+                </label>
+                <textarea
+                  rows={2}
+                  value={editingCategory.description_en || ""}
+                  onChange={(e) => setEditingCategory({ ...editingCategory, description_en: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-[#e4ded6] bg-[#faf8f5] focus:outline-none"
+                  placeholder="Short description..."
+                />
+              </div>
+
+              {/* Sort Order & Active Status */}
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div>
+                  <label className="block font-semibold text-[#1c1817] mb-1">ترتيب العرض</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={editingCategory.sort_order ?? 1}
+                    onChange={(e) =>
+                      setEditingCategory({
+                        ...editingCategory,
+                        sort_order: parseInt(e.target.value) || 1,
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-[#e4ded6] bg-[#faf8f5] focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-[#faf8f5] rounded-xl border border-[#ece6df] mt-auto">
+                  <span className="font-semibold text-[#1c1817]">ظهور في المتجر</span>
+                  <input
+                    type="checkbox"
+                    checked={editingCategory.is_active !== false}
+                    onChange={(e) =>
+                      setEditingCategory({ ...editingCategory, is_active: e.target.checked })
+                    }
+                    className="w-4 h-4 rounded accent-[#8a5d3b] cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-[#f4f0eb]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditingCategory(null)}
+                  className="rounded-xl"
+                >
+                  إلغاء
+                </Button>
+                <Button type="submit" className="bg-[#1c1817] hover:bg-[#332e2c] text-white rounded-xl px-6">
+                  <Save className="w-4 h-4 ml-1.5" />
+                  {isNewCategory ? "إضافة القسم" : "حفظ التعديلات"}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

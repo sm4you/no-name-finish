@@ -100,14 +100,14 @@
   display: inline-flex;
   width: max-content;
   will-change: transform;
-  animation: ticker-scroll-ltr 24s linear infinite;
+  animation: ticker-scroll-ltr 30s linear infinite;
 }
 
 .animate-ticker-rtl {
   display: inline-flex;
   width: max-content;
   will-change: transform;
-  animation: ticker-scroll-rtl 24s linear infinite;
+  animation: ticker-scroll-rtl 30s linear infinite;
 }
 
 .announcement-bar-container:hover .animate-ticker-ltr,

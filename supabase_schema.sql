@@ -1,5 +1,6 @@
 -- ================================================================
 -- NO NAME BOUTIQUE - SUPABASE DATABASE SCHEMA & INITIAL DATA
+-- ملف إعداد قاعدة بيانات Supabase الرسمية والمتوافقة 100% مع المتجر
 -- قم بنسخ هذا الكود بالكامل ولصقه في:
 -- Supabase Dashboard -> SQL Editor -> New Query -> Run
 -- ================================================================
@@ -7,17 +8,43 @@
 -- 1. تفعيل الامتدادات الضرورية (Extensions)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. جدول الأقسام (Categories)
+-- 2. جدول حسابات المشرفين وصلاحيات فريق العمل (Admin Users & RBAC)
+CREATE TABLE IF NOT EXISTS public.admin_users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    username TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT,
+    role TEXT NOT NULL DEFAULT 'manager', -- super_admin, manager, editor, orders_only
+    password_hash TEXT,
+    permissions JSONB NOT NULL DEFAULT '{
+        "canManageOrders": true,
+        "canManageProducts": true,
+        "canManageCategories": true,
+        "canManageContent": true,
+        "canManageTheme": false,
+        "canManageCoupons": true,
+        "canManageAdmins": false
+    }'::jsonb,
+    is_active BOOLEAN DEFAULT true,
+    last_login_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 3. جدول الأقسام والتصنيفات (Categories)
 CREATE TABLE IF NOT EXISTS public.categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     slug TEXT UNIQUE NOT NULL,
     name_ar TEXT NOT NULL,
     name_en TEXT NOT NULL,
+    description_ar TEXT,
+    description_en TEXT,
+    image TEXT,
+    is_active BOOLEAN DEFAULT true,
     sort_order INT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. جدول المنتجات (Products)
+-- 4. جدول المنتجات (Products)
 CREATE TABLE IF NOT EXISTS public.products (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     slug TEXT UNIQUE NOT NULL,
@@ -36,23 +63,25 @@ CREATE TABLE IF NOT EXISTS public.products (
     is_active BOOLEAN DEFAULT true,
     images TEXT[] DEFAULT '{}',
     image TEXT,
+    video TEXT,
     sizes TEXT[] DEFAULT '{"S","M","L","XL"}',
     colors TEXT[] DEFAULT '{"Camel","Olive","Black"}',
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 4. جدول متغيرات المنتج (Product Variants - المقاسات والألوان والمخزون)
+-- 5. جدول متغيرات المنتج (Product Variants - المقاسات والألوان والمخزون)
 CREATE TABLE IF NOT EXISTS public.product_variants (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     product_id UUID REFERENCES public.products(id) ON DELETE CASCADE,
     size TEXT NOT NULL,
     color TEXT NOT NULL,
+    color_name TEXT,
     sku TEXT,
     stock INT DEFAULT 10,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 5. جدول الطلبات (Orders)
+-- 6. جدول الطلبات (Orders)
 CREATE TABLE IF NOT EXISTS public.orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     public_reference TEXT UNIQUE NOT NULL,
@@ -62,7 +91,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     notes TEXT,
     payment_method TEXT NOT NULL DEFAULT 'cod',     -- cod, instapay, wallet
     payment_status TEXT NOT NULL DEFAULT 'pending', -- pending, submitted, verified, rejected
-    fulfillment_status TEXT NOT NULL DEFAULT 'new', -- new, processing, completed, cancelled
+    fulfillment_status TEXT NOT NULL DEFAULT 'new', -- new, processing, shipping, delivered, cancelled
     subtotal NUMERIC NOT NULL DEFAULT 0,
     discount_amount NUMERIC NOT NULL DEFAULT 0,
     shipping_amount NUMERIC NOT NULL DEFAULT 0,
@@ -75,7 +104,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 6. جدول كوبونات الخصم (Coupons)
+-- 7. جدول كوبونات الخصم (Coupons)
 CREATE TABLE IF NOT EXISTS public.coupons (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     code TEXT UNIQUE NOT NULL,
@@ -86,14 +115,14 @@ CREATE TABLE IF NOT EXISTS public.coupons (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 7. جدول إعدادات المتجر (Site Settings)
+-- 8. جدول إعدادات المتجر (Site Settings)
 CREATE TABLE IF NOT EXISTS public.site_settings (
     id TEXT PRIMARY KEY DEFAULT 'default',
     data JSONB NOT NULL DEFAULT '{}'::jsonb,
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 8. جدول إعدادات الأقسام والسكاشن (Sections Settings)
+-- 9. جدول إعدادات الأقسام والسكاشن (Sections Settings)
 CREATE TABLE IF NOT EXISTS public.section_settings (
     id TEXT PRIMARY KEY,
     title TEXT,
@@ -103,7 +132,7 @@ CREATE TABLE IF NOT EXISTS public.section_settings (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 9. جدول إعدادات الصفحات الثابتة (Page Settings - About, Shipping, Contact)
+-- 10. جدول إعدادات الصفحات الثابتة (Page Settings - About, Shipping, Contact)
 CREATE TABLE IF NOT EXISTS public.page_settings (
     id TEXT PRIMARY KEY DEFAULT 'default',
     data JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -111,9 +140,10 @@ CREATE TABLE IF NOT EXISTS public.page_settings (
 );
 
 -- ================================================================
--- إعدادات الأمان (Row Level Security - RLS)
+-- إعدادات الأمان وسياسات الحماية (Row Level Security - RLS)
 -- ================================================================
 
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_variants ENABLE ROW LEVEL SECURITY;
@@ -123,33 +153,41 @@ ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.section_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.page_settings ENABLE ROW LEVEL SECURITY;
 
--- السماح للجميع بقراءة البيانات العامة للمتجر (Read Access)
-CREATE POLICY "Public Categories are viewable by everyone" ON public.categories FOR SELECT USING (true);
-CREATE POLICY "Public Products are viewable by everyone" ON public.products FOR SELECT USING (true);
+-- 1. سياسات القراءة العامة للواجهة الأمامية للمتجر (Public Read Policies)
+CREATE POLICY "Public Categories are viewable by everyone" ON public.categories FOR SELECT USING (is_active = true OR auth.role() = 'service_role' OR auth.role() = 'authenticated');
+CREATE POLICY "Public Products are viewable by everyone" ON public.products FOR SELECT USING (is_active = true OR auth.role() = 'service_role' OR auth.role() = 'authenticated');
 CREATE POLICY "Public Variants are viewable by everyone" ON public.product_variants FOR SELECT USING (true);
-CREATE POLICY "Public Coupons are viewable by everyone" ON public.coupons FOR SELECT USING (true);
+CREATE POLICY "Public Coupons are viewable by everyone" ON public.coupons FOR SELECT USING (is_active = true OR auth.role() = 'service_role' OR auth.role() = 'authenticated');
 CREATE POLICY "Public Settings are viewable by everyone" ON public.site_settings FOR SELECT USING (true);
 CREATE POLICY "Public Sections are viewable by everyone" ON public.section_settings FOR SELECT USING (true);
 CREATE POLICY "Public Pages are viewable by everyone" ON public.page_settings FOR SELECT USING (true);
 
--- السماح للعملاء بإنشاء طلبات جديدة (Insert Orders)
+-- 2. سياسات الطلبات للعملاء (Orders Security)
+-- السماح لأي عميل بإنشاء طلب جديد عند إتمام الشراء
 CREATE POLICY "Anyone can insert orders" ON public.orders FOR INSERT WITH CHECK (true);
--- قراءة الطلب الخاص بالعميل من خلال مرجع الطلب
-CREATE POLICY "Users can view orders" ON public.orders FOR SELECT USING (true);
+-- قراءة الطلب تكون خاصة فقط بالإدارة ومسؤولي الطلبات لضمان خصوصية بيانات العملاء
+CREATE POLICY "Admins and service role can view orders" ON public.orders FOR SELECT USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
+CREATE POLICY "Admins and service role can update orders" ON public.orders FOR UPDATE USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 
--- السماح الكامل للوحة التحكم والسيرفر (Service Role / All operations)
+-- 3. سياسات جدول المشرفين (Admin Users Security)
+-- حماية كاملة لحسابات المشرفين: لا يمكن قراءتها أو تعديلها إلا بواسطة المشرفين المسجلين أو السيرفر
+CREATE POLICY "Admin users secure access" ON public.admin_users FOR ALL USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
+
+-- 4. صلاحيات كاملة للوحة التحكم ومفتاح السيرفر (Service Role Full Access)
 CREATE POLICY "Service role full access categories" ON public.categories FOR ALL USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 CREATE POLICY "Service role full access products" ON public.products FOR ALL USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 CREATE POLICY "Service role full access variants" ON public.product_variants FOR ALL USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
-CREATE POLICY "Service role full access orders" ON public.orders FOR ALL USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 CREATE POLICY "Service role full access coupons" ON public.coupons FOR ALL USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 CREATE POLICY "Service role full access site_settings" ON public.site_settings FOR ALL USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 CREATE POLICY "Service role full access section_settings" ON public.section_settings FOR ALL USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 CREATE POLICY "Service role full access page_settings" ON public.page_settings FOR ALL USING (auth.role() = 'service_role' OR auth.role() = 'authenticated');
 
 -- ================================================================
--- مستودع تخزين الصور (Supabase Storage Bucket: product-images)
+-- مستودعات التخزين والسياسات الخاصة بالصور وإيصالات الدفع
+-- (Supabase Storage Buckets & Strict Privacy Policies)
 -- ================================================================
+
+-- 1. مستودع صور المنتجات (عام ومفتوح للعرض للجميع)
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('product-images', 'product-images', true) 
 ON CONFLICT (id) DO NOTHING;
@@ -158,34 +196,64 @@ CREATE POLICY "Public Access for Product Images"
 ON storage.objects FOR SELECT 
 USING (bucket_id = 'product-images');
 
-CREATE POLICY "Anyone can upload images" 
+CREATE POLICY "Anyone can upload product images" 
 ON storage.objects FOR INSERT 
 WITH CHECK (bucket_id = 'product-images');
+
+-- 2. مستودع إيصالات الدفع والتحويل البنكي (خاص ومحمي لحفظ خصوصية العملاء)
+-- public = false لضمان عدم إمكانية تصفح الإيصالات من خارج النظام
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('payment-receipts', 'payment-receipts', false) 
+ON CONFLICT (id) DO UPDATE SET public = false;
+
+-- السماح للعملاء برفع إيصال الدفع عند إتمام الطلب (Upload / Insert Allowed for All)
+CREATE POLICY "Anyone can upload payment receipts" 
+ON storage.objects FOR INSERT 
+WITH CHECK (bucket_id = 'payment-receipts');
+
+-- حظر القراءة والتحميل إلا للمشرفين المصرح لهم فقط (Read / Select Restricted to Admins)
+CREATE POLICY "Only admins and service role can view payment receipts" 
+ON storage.objects FOR SELECT 
+USING (
+    bucket_id = 'payment-receipts' 
+    AND (auth.role() = 'service_role' OR auth.role() = 'authenticated')
+);
 
 -- ================================================================
 -- البيانات الأولية للمتجر (Seed Initial Data)
 -- ================================================================
 
--- 1. إدخال الأقسام الرئيسية
-INSERT INTO public.categories (slug, name_ar, name_en, sort_order) VALUES
-('sets', 'أطقم', 'Sets', 1),
-('blouses-shirts', 'توبس', 'Blouses / shirts', 2),
-('skirts-pants', 'بنطال', 'Skirts / pants', 3),
-('dresses', 'فساتين', 'Dresses', 4),
-('denims', 'دينم وجينز', 'Denims', 5)
+-- 1. إدخال الأقسام الستة المطلوبة والتحكم بها
+INSERT INTO public.categories (slug, name_ar, name_en, description_ar, description_en, image, sort_order, is_active) VALUES
+('new-collection', 'وصل حديثاً', 'New Collection', 'أحدث القطع والتصاميم الصيفية الحصرية', 'Latest seasonal drops and exclusive designs', 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=85', 1, true),
+('sets', 'أطقم', 'Sets', 'أطقم متناسقة من الكتان والأقمشة الطبيعية', 'Matching linen and natural fiber coordinated sets', 'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=700&q=85', 2, true),
+('skirts-pants', 'تنانير وبناطيل', 'Skirts / pants', 'بناطيل وتنانير بقصات مريحة وواسعة', 'Wide-leg trousers and elegant modest skirts', 'https://images.unsplash.com/photo-1506629905607-d9b1c7d8b7d9?auto=format&fit=crop&w=700&q=85', 3, true),
+('blouses-shirts', 'بلوزات وقمصان', 'Blouses / shirts', 'قمصان وبلوزات ناعمة للاستخدام اليومي والعمل', 'Soft shirts and everyday versatile blouses', 'https://images.unsplash.com/photo-1605763240000-7e93b172d754?auto=format&fit=crop&w=700&q=85', 4, true),
+('denims', 'جينز ودنيم', 'Denims', 'أزياء جينز عصرية بقصات محتشمة وعملية', 'Modern relaxed denim cuts with timeless comfort', 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=85', 5, true),
+('dresses', 'فساتين', 'Dresses', 'فساتين طويلة بأقمشة انسيابية راقية', 'Flowing modest dresses with artisanal details', 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=700&q=85', 6, true)
 ON CONFLICT (slug) DO UPDATE SET
 name_ar = EXCLUDED.name_ar,
 name_en = EXCLUDED.name_en,
-sort_order = EXCLUDED.sort_order;
+description_ar = EXCLUDED.description_ar,
+description_en = EXCLUDED.description_en,
+image = EXCLUDED.image,
+sort_order = EXCLUDED.sort_order,
+is_active = EXCLUDED.is_active;
 
--- 2. إدخال الكوبونات الافتراضية
+-- 2. إدخال حسابات المشرفين الافتراضية
+INSERT INTO public.admin_users (username, name, email, role, permissions, is_active) VALUES
+('admin', 'المدير العام الرئيسي', 'admin@noname-store.com', 'super_admin', '{"canManageOrders": true, "canManageProducts": true, "canManageCategories": true, "canManageContent": true, "canManageTheme": true, "canManageCoupons": true, "canManageAdmins": true}'::jsonb, true),
+('manager', 'مدير المتجر والطلبات', 'manager@noname-store.com', 'manager', '{"canManageOrders": true, "canManageProducts": true, "canManageCategories": true, "canManageContent": false, "canManageTheme": false, "canManageCoupons": true, "canManageAdmins": false}'::jsonb, true)
+ON CONFLICT (username) DO NOTHING;
+
+-- 3. إدخال الكوبونات الافتراضية
 INSERT INTO public.coupons (code, discount_percent, is_active, used_count) VALUES
 ('WELCOME10', 10, true, 5),
 ('NONAME20', 20, true, 12),
 ('EID15', 15, true, 3)
 ON CONFLICT (code) DO NOTHING;
 
--- 3. إدخال إعدادات المتجر الافتراضية
+-- 4. إدخال إعدادات المتجر الافتراضية
 INSERT INTO public.site_settings (id, data) VALUES (
     'default',
     '{
@@ -208,7 +276,7 @@ INSERT INTO public.site_settings (id, data) VALUES (
     }'::jsonb
 ) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data;
 
--- 4. إدخال إعدادات الأقسام الرئيسية (Sections)
+-- 5. إدخال إعدادات الأقسام الرئيسية (Sections)
 INSERT INTO public.section_settings (id, title, description, image) VALUES
 ('arrivals', 'وصل حديثاً', 'قطع جديدة وصلت لتوها بتصاميم صيفية مريحة.', 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1900&q=85'),
 ('categories', 'تسوقي بالأقسام', 'اختاري القسم الأقرب لأسلوبكِ واحتياجكِ.', ''),
@@ -216,7 +284,7 @@ INSERT INTO public.section_settings (id, title, description, image) VALUES
 ('discover', 'اكتشفي أسلوبكِ', 'شاهدي إطلالاتنا في الحركة والتفاصيل اليومية.', '')
 ON CONFLICT (id) DO NOTHING;
 
--- 5. إدخال إعدادات الصفحات (About, Shipping, Contact)
+-- 6. إدخال إعدادات الصفحات (About, Shipping, Contact)
 INSERT INTO public.page_settings (id, data) VALUES (
     'default',
     '{

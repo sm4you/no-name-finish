@@ -3,7 +3,12 @@ export interface Category {
   slug: string;
   name_ar: string;
   name_en: string;
+  description_ar?: string;
+  description_en?: string;
+  image?: string;
+  is_active?: boolean;
   sort_order?: number;
+  product_count?: number;
 }
 
 export interface ProductVariant {
@@ -201,6 +206,31 @@ export interface CreateOrderRequest {
   }[];
 }
 
+export type AdminRole = "super_admin" | "manager" | "editor" | "orders_only";
+
+export interface AdminPermissions {
+  canManageOrders: boolean;
+  canManageProducts: boolean;
+  canManageCategories?: boolean;
+  canManageContent: boolean;
+  canManageTheme: boolean;
+  canManageCoupons: boolean;
+  canManageAdmins: boolean;
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  name: string;
+  email?: string;
+  role: AdminRole;
+  password?: string;
+  isActive: boolean;
+  createdAt: string;
+  lastLoginAt?: string;
+  permissions: AdminPermissions;
+}
+
 export interface AdminLoginRequest {
   username: string;
   password: string;
@@ -210,8 +240,11 @@ export interface AdminLoginResponse {
   success: boolean;
   token?: string;
   user?: {
+    id: string;
     username: string;
-    role: string;
+    name: string;
+    role: AdminRole;
+    permissions: AdminPermissions;
   };
   error?: string;
 }
@@ -219,3 +252,4 @@ export interface AdminLoginResponse {
 export interface DemoResponse {
   message: string;
 }
+

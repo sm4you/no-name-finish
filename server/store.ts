@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Category, Product, Order, SiteSettings, Coupon, SectionSettings, PageSettings } from "@shared/api";
+import { Category, Product, Order, SiteSettings, Coupon, SectionSettings, PageSettings, AdminUser } from "@shared/api";
 
 export interface InMemoryStore {
   categories: Category[];
@@ -11,7 +11,48 @@ export interface InMemoryStore {
   sections: Record<string, SectionSettings>;
   pageSettings: PageSettings;
   adminTokens: Set<string>;
+  adminUsers: AdminUser[];
 }
+
+export const defaultAdminUsers: AdminUser[] = [
+  {
+    id: "admin-1",
+    username: "admin",
+    name: "المدير العام الرئيسي",
+    email: "admin@noname-store.com",
+    role: "super_admin",
+    password: "password123",
+    isActive: true,
+    createdAt: new Date("2026-01-01").toISOString(),
+    lastLoginAt: new Date().toISOString(),
+    permissions: {
+      canManageOrders: true,
+      canManageProducts: true,
+      canManageContent: true,
+      canManageTheme: true,
+      canManageCoupons: true,
+      canManageAdmins: true,
+    },
+  },
+  {
+    id: "admin-2",
+    username: "manager",
+    name: "مسؤول المنتجات والطلبات",
+    email: "manager@noname-store.com",
+    role: "manager",
+    password: "password123",
+    isActive: true,
+    createdAt: new Date("2026-02-15").toISOString(),
+    permissions: {
+      canManageOrders: true,
+      canManageProducts: true,
+      canManageContent: false,
+      canManageTheme: false,
+      canManageCoupons: true,
+      canManageAdmins: false,
+    },
+  },
+];
 
 const defaultSettings: SiteSettings = {
   storeName: "No Name",
@@ -130,12 +171,72 @@ const defaultCoupons: Coupon[] = [
 
 export function initializeStore(): InMemoryStore {
   let categories: Category[] = [
-    { slug: "sets", name_ar: "أطقم", name_en: "Sets", sort_order: 1 },
-    { slug: "blouses-shirts", name_ar: "توبس", name_en: "Blouses / shirts", sort_order: 2 },
-    { slug: "skirts-pants", name_ar: "بنطال", name_en: "Skirts / pants", sort_order: 3 },
-    { slug: "denims", name_ar: "جينز", name_en: "Denims", sort_order: 4 },
-    { slug: "dresses", name_ar: "فساتين", name_en: "Dresses", sort_order: 5 },
-    { slug: "jackets", name_ar: "جاكيتات", name_en: "Jackets", sort_order: 6 },
+    {
+      id: "cat-new-collection",
+      slug: "new-collection",
+      name_ar: "وصل حديثاً",
+      name_en: "New Collection",
+      description_ar: "أحدث القطع والتصاميم الصيفية الحصرية",
+      description_en: "Latest seasonal drops and exclusive designs",
+      image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=85",
+      is_active: true,
+      sort_order: 1,
+    },
+    {
+      id: "cat-sets",
+      slug: "sets",
+      name_ar: "أطقم",
+      name_en: "Sets",
+      description_ar: "أطقم متناسقة من الكتان والأقمشة الطبيعية",
+      description_en: "Matching linen and natural fiber coordinated sets",
+      image: "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=700&q=85",
+      is_active: true,
+      sort_order: 2,
+    },
+    {
+      id: "cat-skirts-pants",
+      slug: "skirts-pants",
+      name_ar: "تنانير وبناطيل",
+      name_en: "Skirts / pants",
+      description_ar: "بناطيل وتنانير بقصات مريحة وواسعة",
+      description_en: "Wide-leg trousers and elegant modest skirts",
+      image: "https://images.unsplash.com/photo-1506629905607-d9b1c7d8b7d9?auto=format&fit=crop&w=700&q=85",
+      is_active: true,
+      sort_order: 3,
+    },
+    {
+      id: "cat-blouses-shirts",
+      slug: "blouses-shirts",
+      name_ar: "بلوزات وقمصان",
+      name_en: "Blouses / shirts",
+      description_ar: "قمصان وبلوزات ناعمة للاستخدام اليومي والعمل",
+      description_en: "Soft shirts and everyday versatile blouses",
+      image: "https://images.unsplash.com/photo-1605763240000-7e93b172d754?auto=format&fit=crop&w=700&q=85",
+      is_active: true,
+      sort_order: 4,
+    },
+    {
+      id: "cat-denims",
+      slug: "denims",
+      name_ar: "جينز ودنيم",
+      name_en: "Denims",
+      description_ar: "أزياء جينز عصرية بقصات محتشمة وعملية",
+      description_en: "Modern relaxed denim cuts with timeless comfort",
+      image: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=85",
+      is_active: true,
+      sort_order: 5,
+    },
+    {
+      id: "cat-dresses",
+      slug: "dresses",
+      name_ar: "فساتين",
+      name_en: "Dresses",
+      description_ar: "فساتين طويلة بأقمشة انسيابية راقية",
+      description_en: "Flowing modest dresses with artisanal details",
+      image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=700&q=85",
+      is_active: true,
+      sort_order: 6,
+    },
   ];
 
   let products: Product[] = [];
@@ -317,6 +418,7 @@ export function initializeStore(): InMemoryStore {
     sections: { ...defaultSections },
     pageSettings: { ...defaultPageSettings },
     adminTokens: new Set(["admin-session-active"]),
+    adminUsers: [...defaultAdminUsers],
   };
 }
 

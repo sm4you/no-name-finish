@@ -344,17 +344,70 @@ ${body.notes ? `ملاحظات: ${body.notes}\n` : ""}
     });
   });
 
-  // Admin Auth
+  // Admin Auth & Login
   app.post("/api/admin/login", (req: Request, res: Response) => {
     const { username, password } = req.body;
-    // Default admin credentials
-    if (username === "admin" && (password === "password123" || password === "admin" || !password)) {
-      const token = `token-${Date.now()}`;
+    const cleanUsername = username?.trim().toLowerCase();
+
+    // Check against dynamic admin users
+    const matchedUser = globalStore.adminUsers.find(
+      (u) => u.username.toLowerCase() === cleanUsername
+    );
+
+    if (matchedUser) {
+      if (!matchedUser.isActive) {
+        return res.status(403).json({ success: false, error: "هذا الحساب معطل حالياً من قِبل الإدارة" });
+      }
+
+      // Check password (or fallback for default testing)
+      const validPassword = matchedUser.password ? matchedUser.password === password : (password === "password123" || password === "admin");
+      if (validPassword) {
+        matchedUser.lastLoginAt = new Date().toISOString();
+        const token = `token-${matchedUser.id}-${Date.now()}`;
+        globalStore.adminTokens.add(token);
+
+        return res.json({
+          success: true,
+          token,
+          user: {
+            id: matchedUser.id,
+            username: matchedUser.username,
+            name: matchedUser.name,
+            role: matchedUser.role,
+            permissions: matchedUser.permissions,
+          },
+        });
+      }
+    }
+
+    // Default admin fallback
+    if (cleanUsername === "admin" && (password === "password123" || password === "admin" || !password)) {
+      const token = `token-admin-${Date.now()}`;
       globalStore.adminTokens.add(token);
+      const defaultAdmin = globalStore.adminUsers[0] || {
+        id: "admin-1",
+        username: "admin",
+        name: "المدير العام الرئيسي",
+        role: "super_admin",
+        permissions: {
+          canManageOrders: true,
+          canManageProducts: true,
+          canManageContent: true,
+          canManageTheme: true,
+          canManageCoupons: true,
+          canManageAdmins: true,
+        },
+      };
       return res.json({
         success: true,
         token,
-        user: { username: "admin", role: "admin" },
+        user: {
+          id: defaultAdmin.id,
+          username: defaultAdmin.username,
+          name: defaultAdmin.name,
+          role: defaultAdmin.role,
+          permissions: defaultAdmin.permissions,
+        },
       });
     }
 
@@ -366,16 +419,225 @@ ${body.notes ? `ملاحظات: ${body.notes}\n` : ""}
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
       if (globalStore.adminTokens.has(token)) {
-        return res.json({ authenticated: true, user: { username: "admin", role: "admin" } });
+        const defaultAdmin = globalStore.adminUsers[0];
+        return res.json({
+          authenticated: true,
+          user: {
+            id: defaultAdmin?.id || "admin-1",
+            username: defaultAdmin?.username || "admin",
+            name: defaultAdmin?.name || "المدير العام",
+            role: defaultAdmin?.role || "super_admin",
+            permissions: defaultAdmin?.permissions,
+          },
+        });
       }
     }
     // Allow demo session in preview environment
-    res.json({ authenticated: true, user: { username: "admin", role: "admin" } });
+    const defaultAdmin = globalStore.adminUsers[0];
+    res.json({
+      authenticated: true,
+      user: {
+        id: defaultAdmin?.id || "admin-1",
+        username: defaultAdmin?.username || "admin",
+        name: defaultAdmin?.name || "المدير العام",
+        role: defaultAdmin?.role || "super_admin",
+        permissions: defaultAdmin?.permissions,
+      },
+    });
   });
 
   app.post("/api/admin/logout", (_req: Request, res: Response) => {
     res.json({ success: true });
   });
+
+  // Admin Users Management (CRUD)
+  app.get("/api/admin/users", (_req: Request, res: Response) => {
+    // Return all users without sensitive raw passwords in standard payload (send masked or flag)
+    const sanitized = globalStore.adminUsers.map((u) => ({
+      id: u.id,
+      username: u.username,
+      name: u.name,
+      email: u.email || "",
+      role: u.role,
+      isActive: u.isActive !== false,
+      createdAt: u.createdAt,
+      lastLoginAt: u.lastLoginAt,
+      permissions: u.permissions || {
+        canManageOrders: true,
+        canManageProducts: true,
+        canManageContent: true,
+        canManageTheme: true,
+        canManageCoupons: true,
+        canManageAdmins: u.role === "super_admin",
+      },
+      hasPassword: Boolean(u.password),
+    }));
+    res.json(sanitized);
+  });
+
+  app.post("/api/admin/users", (req: Request, res: Response) => {
+    const { username, name, email, password, role = "manager", permissions, isActive = true } = req.body;
+
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: "اسم المستخدم مطلوب" });
+    }
+    if (!password || !password.trim()) {
+      return res.status(400).json({ error: "كلمة المرور مطلوبة" });
+    }
+
+    const cleanUsername = username.trim().toLowerCase();
+    const existing = globalStore.adminUsers.find((u) => u.username.toLowerCase() === cleanUsername);
+    if (existing) {
+      return res.status(409).json({ error: "اسم المستخدم هذا مسجل مسبقاً، يرجى اختيار اسم مستخدم آخر" });
+    }
+
+    const defaultRolePermissions = {
+      super_admin: {
+        canManageOrders: true,
+        canManageProducts: true,
+        canManageContent: true,
+        canManageTheme: true,
+        canManageCoupons: true,
+        canManageAdmins: true,
+      },
+      manager: {
+        canManageOrders: true,
+        canManageProducts: true,
+        canManageContent: true,
+        canManageTheme: false,
+        canManageCoupons: true,
+        canManageAdmins: false,
+      },
+      editor: {
+        canManageOrders: false,
+        canManageProducts: true,
+        canManageContent: true,
+        canManageTheme: true,
+        canManageCoupons: false,
+        canManageAdmins: false,
+      },
+      orders_only: {
+        canManageOrders: true,
+        canManageProducts: false,
+        canManageContent: false,
+        canManageTheme: false,
+        canManageCoupons: false,
+        canManageAdmins: false,
+      },
+    };
+
+    const finalPermissions = permissions || defaultRolePermissions[role as keyof typeof defaultRolePermissions] || defaultRolePermissions.manager;
+
+    const newUser = {
+      id: `admin-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      username: cleanUsername,
+      name: name?.trim() || cleanUsername,
+      email: email?.trim() || "",
+      role: role as any,
+      password: password.trim(),
+      isActive: isActive !== false,
+      createdAt: new Date().toISOString(),
+      permissions: finalPermissions,
+    };
+
+    globalStore.adminUsers.push(newUser);
+
+    res.status(201).json({
+      success: true,
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        isActive: newUser.isActive,
+        createdAt: newUser.createdAt,
+        permissions: newUser.permissions,
+        hasPassword: true,
+      },
+    });
+  });
+
+  const handleUpdateAdminUser = (req: Request, res: Response) => {
+    const { id } = req.params;
+    const userIndex = globalStore.adminUsers.findIndex((u) => u.id === id);
+
+    if (userIndex === -1) {
+      return res.status(404).json({ error: "المستخدم غير موجود" });
+    }
+
+    const existingUser = globalStore.adminUsers[userIndex];
+    const { username, name, email, password, role, permissions, isActive } = req.body;
+
+    // Check if updating username creates a duplicate
+    if (username && username.trim().toLowerCase() !== existingUser.username.toLowerCase()) {
+      const cleanUsername = username.trim().toLowerCase();
+      const duplicate = globalStore.adminUsers.find(
+        (u) => u.id !== id && u.username.toLowerCase() === cleanUsername
+      );
+      if (duplicate) {
+        return res.status(409).json({ error: "اسم المستخدم الجديد مستخدم بالفعل لحساب آخر" });
+      }
+      existingUser.username = cleanUsername;
+    }
+
+    // Protection: Prevent deactivating or demoting the last active super_admin
+    if (existingUser.role === "super_admin" && (isActive === false || (role && role !== "super_admin"))) {
+      const activeSuperAdmins = globalStore.adminUsers.filter((u) => u.id !== id && u.role === "super_admin" && u.isActive);
+      if (activeSuperAdmins.length === 0) {
+        return res.status(400).json({ error: "لا يمكن تعطيل أو تغيير رتبة المشرف العام الوحيد النشط في المتجر" });
+      }
+    }
+
+    if (name !== undefined) existingUser.name = name.trim();
+    if (email !== undefined) existingUser.email = email.trim();
+    if (role !== undefined) existingUser.role = role;
+    if (isActive !== undefined) existingUser.isActive = Boolean(isActive);
+    if (permissions !== undefined) existingUser.permissions = { ...existingUser.permissions, ...permissions };
+    if (password && password.trim()) existingUser.password = password.trim();
+
+    globalStore.adminUsers[userIndex] = existingUser;
+
+    res.json({
+      success: true,
+      user: {
+        id: existingUser.id,
+        username: existingUser.username,
+        name: existingUser.name,
+        email: existingUser.email,
+        role: existingUser.role,
+        isActive: existingUser.isActive,
+        createdAt: existingUser.createdAt,
+        lastLoginAt: existingUser.lastLoginAt,
+        permissions: existingUser.permissions,
+        hasPassword: Boolean(existingUser.password),
+      },
+    });
+  };
+
+  app.put("/api/admin/users/:id", handleUpdateAdminUser);
+  app.patch("/api/admin/users/:id", handleUpdateAdminUser);
+
+  app.delete("/api/admin/users/:id", (req: Request, res: Response) => {
+    const { id } = req.params;
+    const userIndex = globalStore.adminUsers.findIndex((u) => u.id === id);
+
+    if (userIndex === -1) {
+      return res.status(404).json({ error: "المستخدم غير موجود" });
+    }
+
+    const targetUser = globalStore.adminUsers[userIndex];
+    if (targetUser.role === "super_admin") {
+      const otherSuperAdmins = globalStore.adminUsers.filter((u) => u.id !== id && u.role === "super_admin");
+      if (otherSuperAdmins.length === 0) {
+        return res.status(400).json({ error: "لا يمكن حذف المشرف العام الوحيد المتبقي في المتجر" });
+      }
+    }
+
+    globalStore.adminUsers.splice(userIndex, 1);
+    res.json({ success: true, message: "تم حذف حساب المشرف بنجاح" });
+  });
+
 
   // Admin: Get Orders
   app.get("/api/admin/orders", (_req: Request, res: Response) => {
@@ -527,6 +789,195 @@ ${body.notes ? `ملاحظات: ${body.notes}\n` : ""}
     const cleanCode = code?.trim().toUpperCase();
     globalStore.coupons = globalStore.coupons.filter((c) => c.code !== cleanCode);
     res.json({ success: true });
+  });
+
+  // Admin: Categories Management
+  app.get("/api/admin/categories", async (_req: Request, res: Response) => {
+    try {
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("categories")
+          .select("*")
+          .order("sort_order", { ascending: true });
+        if (!error && data) {
+          const categoriesWithCounts = data.map((cat) => {
+            const count = globalStore.products.filter(
+              (p) => p.category_slug === cat.slug || p.category_id === cat.id
+            ).length;
+            return { ...cat, product_count: count };
+          });
+          return res.json(categoriesWithCounts);
+        }
+      }
+    } catch {
+      // fallback
+    }
+
+    const categoriesWithCounts = globalStore.categories.map((cat, idx) => {
+      const count = globalStore.products.filter(
+        (p) =>
+          p.category_slug === cat.slug ||
+          p.category_slug === cat.name_en ||
+          p.category_slug === cat.name_ar
+      ).length;
+      return {
+        ...cat,
+        id: cat.id || `cat-${cat.slug || idx}`,
+        sort_order: cat.sort_order ?? idx + 1,
+        is_active: cat.is_active ?? true,
+        product_count: count,
+      };
+    });
+
+    res.json(categoriesWithCounts);
+  });
+
+  app.post("/api/admin/categories", async (req: Request, res: Response) => {
+    try {
+      const { name_ar, name_en, slug, description_ar, description_en, image, sort_order, is_active } = req.body;
+      if (!name_ar || !name_en) {
+        return res.status(400).json({ error: "اسم القسم بالعربية والإنجليزية مطلوب" });
+      }
+
+      const generatedSlug = (slug || name_en)
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || `category-${Date.now()}`;
+
+      const newCategory: Category = {
+        id: `cat-${Date.now()}`,
+        slug: generatedSlug,
+        name_ar: name_ar.trim(),
+        name_en: name_en.trim(),
+        description_ar: description_ar || "",
+        description_en: description_en || "",
+        image: image || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=85",
+        sort_order: typeof sort_order === "number" ? sort_order : globalStore.categories.length + 1,
+        is_active: is_active !== false,
+        product_count: 0,
+      };
+
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from("categories")
+            .insert({
+              slug: newCategory.slug,
+              name_ar: newCategory.name_ar,
+              name_en: newCategory.name_en,
+              description_ar: newCategory.description_ar,
+              description_en: newCategory.description_en,
+              image: newCategory.image,
+              sort_order: newCategory.sort_order,
+              is_active: newCategory.is_active,
+            })
+            .select()
+            .single();
+          if (!error && data) {
+            newCategory.id = data.id;
+          }
+        } catch (e) {
+          console.error("Supabase insert category error:", e);
+        }
+      }
+
+      globalStore.categories.push(newCategory);
+      res.status(201).json({ success: true, category: newCategory });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to create category" });
+    }
+  });
+
+  app.patch("/api/admin/categories/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const idx = globalStore.categories.findIndex((c) => c.id === id || c.slug === id);
+
+      if (idx === -1) {
+        return res.status(404).json({ error: "القسم غير موجود" });
+      }
+
+      const updatedCategory = {
+        ...globalStore.categories[idx],
+        ...updates,
+      };
+      globalStore.categories[idx] = updatedCategory;
+
+      if (supabase) {
+        try {
+          await supabase
+            .from("categories")
+            .update({
+              name_ar: updatedCategory.name_ar,
+              name_en: updatedCategory.name_en,
+              slug: updatedCategory.slug,
+              description_ar: updatedCategory.description_ar,
+              description_en: updatedCategory.description_en,
+              image: updatedCategory.image,
+              sort_order: updatedCategory.sort_order,
+              is_active: updatedCategory.is_active,
+            })
+            .or(`id.eq.${id},slug.eq.${id}`);
+        } catch (e) {
+          console.error("Supabase update category error:", e);
+        }
+      }
+
+      res.json({ success: true, category: updatedCategory });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to update category" });
+    }
+  });
+
+  app.delete("/api/admin/categories/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const categoryToDelete = globalStore.categories.find((c) => c.id === id || c.slug === id);
+      if (!categoryToDelete) {
+        return res.status(404).json({ error: "القسم غير موجود" });
+      }
+
+      globalStore.categories = globalStore.categories.filter((c) => c.id !== id && c.slug !== id);
+
+      if (supabase) {
+        try {
+          await supabase.from("categories").delete().or(`id.eq.${id},slug.eq.${id}`);
+        } catch (e) {
+          console.error("Supabase delete category error:", e);
+        }
+      }
+
+      res.json({ success: true, message: "تم حذف القسم بنجاح" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to delete category" });
+    }
+  });
+
+  app.post("/api/admin/categories/reorder", async (req: Request, res: Response) => {
+    try {
+      const { categoryIds } = req.body;
+      if (Array.isArray(categoryIds)) {
+        const reordered: Category[] = [];
+        categoryIds.forEach((catId: string, idx: number) => {
+          const cat = globalStore.categories.find((c) => c.id === catId || c.slug === catId);
+          if (cat) {
+            cat.sort_order = idx + 1;
+            reordered.push(cat);
+          }
+        });
+        globalStore.categories.forEach((cat) => {
+          if (!reordered.find((r) => r.id === cat.id || r.slug === cat.slug)) {
+            reordered.push(cat);
+          }
+        });
+        globalStore.categories = reordered;
+      }
+      res.json({ success: true, categories: globalStore.categories });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   return app;
