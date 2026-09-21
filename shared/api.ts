@@ -344,3 +344,67 @@ export function normalizeCategorySlug(raw?: string | null): string {
   return str.replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+export interface ParsedVideo {
+  type: "youtube" | "vimeo" | "direct" | "empty";
+  originalUrl: string;
+  videoId?: string;
+  embedUrl?: string;
+  directUrl?: string;
+  thumbnailUrl?: string;
+}
+
+export function parseVideoUrl(rawUrl?: string): ParsedVideo {
+  if (!rawUrl || typeof rawUrl !== "string") {
+    return { type: "empty", originalUrl: "" };
+  }
+  const url = rawUrl.trim();
+  if (!url) {
+    return { type: "empty", originalUrl: "" };
+  }
+
+  // YouTube Shorts: https://youtube.com/shorts/fJgwVW9rKHA or https://www.youtube.com/shorts/fJgwVW9rKHA
+  const shortsMatch = url.match(/(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{6,15})/i);
+  if (shortsMatch && shortsMatch[1]) {
+    const videoId = shortsMatch[1];
+    return {
+      type: "youtube",
+      originalUrl: url,
+      videoId,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&playsinline=1&rel=0&modestbranding=1`,
+      thumbnailUrl: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+    };
+  }
+
+  // Standard YouTube: https://www.youtube.com/watch?v=... or https://youtu.be/...
+  const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([a-zA-Z0-9_-]{6,15})/i);
+  if (ytMatch && ytMatch[1]) {
+    const videoId = ytMatch[1];
+    return {
+      type: "youtube",
+      originalUrl: url,
+      videoId,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&playsinline=1&rel=0&modestbranding=1`,
+      thumbnailUrl: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+    };
+  }
+
+  // Vimeo
+  const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?([0-9]+)/i);
+  if (vimeoMatch && vimeoMatch[1]) {
+    const videoId = vimeoMatch[1];
+    return {
+      type: "vimeo",
+      originalUrl: url,
+      videoId,
+      embedUrl: `https://player.vimeo.com/video/${videoId}?autoplay=1&muted=1&loop=1&autopause=0`,
+    };
+  }
+
+  // Direct video file or uploaded base64 data
+  return {
+    type: "direct",
+    originalUrl: url,
+    directUrl: url,
+  };
+}
+

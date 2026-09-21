@@ -16,7 +16,7 @@ import {
   RotateCcw,
   BadgeCheck,
 } from "lucide-react";
-import type { SectionSettings, PageSettings, SiteSettings as ApiSiteSettings } from "@shared/api";
+import { type SectionSettings, type PageSettings, type SiteSettings as ApiSiteSettings, normalizeCategorySlug } from "@shared/api";
 import { useCart } from "@/context/CartContext";
 
 export const defaultStoreProducts = [
@@ -329,11 +329,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     discoverItems: [
       {
         id: "v1",
-        title: "Daytime Linen",
-        titleAr: "كتان نهاري مريح",
-        image: "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=600&q=80",
-        video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-        link: "/shop?category=Sets",
+        title: "Latest Lookbook Reel",
+        titleAr: "أحدث إطلالات الفساتين والأطقم",
+        image: "https://img.youtube.com/vi/fJgwVW9rKHA/hqdefault.jpg",
+        video: "https://youtube.com/shorts/fJgwVW9rKHA?si=M-poypgeahA4pd8f",
+        link: "/shop?collection=new",
       },
       {
         id: "v2",
@@ -708,7 +708,16 @@ function StoreLayoutContent({ children }: { children: ReactNode }) {
 
   const activeSection = (query: string) => {
     if (location.pathname !== "/shop") return false;
-    return new URLSearchParams(location.search).toString() === new URLSearchParams(query).toString();
+    const currentParams = new URLSearchParams(location.search);
+    const targetParams = new URLSearchParams(query);
+
+    const currentCollection = currentParams.get("collection");
+    const targetCollection = targetParams.get("collection");
+    if (targetCollection) return currentCollection === targetCollection;
+
+    const currentCat = normalizeCategorySlug(currentParams.get("category"));
+    const targetCat = normalizeCategorySlug(targetParams.get("category"));
+    return currentCat === targetCat;
   };
 
   const nav = (path: string) => {
@@ -809,41 +818,41 @@ function StoreLayoutContent({ children }: { children: ReactNode }) {
                   New Collection
                 </Link>
                 <Link
-                  to="/shop?category=Sets"
+                  to="/shop?category=sets"
                   className={`text-[13px] hover:underline hover:underline-offset-8 ${
-                    activeSection("?category=Sets") ? "font-semibold underline underline-offset-8" : ""
+                    activeSection("?category=sets") ? "font-semibold underline underline-offset-8" : ""
                   }`}
                 >
                   Sets
                 </Link>
                 <Link
-                  to="/shop?category=Skirts%20%2F%20pants"
+                  to="/shop?category=skirts-pants"
                   className={`text-[13px] hover:underline hover:underline-offset-8 ${
-                    activeSection("?category=Skirts%20%2F%20pants") ? "font-semibold underline underline-offset-8" : ""
+                    activeSection("?category=skirts-pants") ? "font-semibold underline underline-offset-8" : ""
                   }`}
                 >
                   Skirts / pants
                 </Link>
                 <Link
-                  to="/shop?category=Blouses%20%2F%20shirts"
+                  to="/shop?category=blouses-shirts"
                   className={`text-[13px] hover:underline hover:underline-offset-8 ${
-                    activeSection("?category=Blouses%20%2F%20shirts") ? "font-semibold underline underline-offset-8" : ""
+                    activeSection("?category=blouses-shirts") ? "font-semibold underline underline-offset-8" : ""
                   }`}
                 >
                   Blouses / shirts
                 </Link>
                 <Link
-                  to="/shop?category=Denims"
+                  to="/shop?category=denims"
                   className={`text-[13px] hover:underline hover:underline-offset-8 ${
-                    activeSection("?category=Denims") ? "font-semibold underline underline-offset-8" : ""
+                    activeSection("?category=denims") ? "font-semibold underline underline-offset-8" : ""
                   }`}
                 >
                   Denims
                 </Link>
                 <Link
-                  to="/shop?category=Dresses"
+                  to="/shop?category=dresses"
                   className={`text-[13px] hover:underline hover:underline-offset-8 ${
-                    activeSection("?category=Dresses") ? "font-semibold underline underline-offset-8" : ""
+                    activeSection("?category=dresses") ? "font-semibold underline underline-offset-8" : ""
                   }`}
                 >
                   Dresses
@@ -908,19 +917,19 @@ function StoreLayoutContent({ children }: { children: ReactNode }) {
                   <button className="text-right" onClick={() => nav("/shop?collection=new")}>
                     New Collection
                   </button>
-                  <button className="text-right" onClick={() => nav("/shop?category=Sets")}>
+                  <button className="text-right" onClick={() => nav("/shop?category=sets")}>
                     Sets
                   </button>
-                  <button className="text-right" onClick={() => nav("/shop?category=Skirts%20%2F%20pants")}>
+                  <button className="text-right" onClick={() => nav("/shop?category=skirts-pants")}>
                     Skirts / pants
                   </button>
-                  <button className="text-right" onClick={() => nav("/shop?category=Blouses%20%2F%20shirts")}>
+                  <button className="text-right" onClick={() => nav("/shop?category=blouses-shirts")}>
                     Blouses / shirts
                   </button>
-                  <button className="text-right" onClick={() => nav("/shop?category=Denims")}>
+                  <button className="text-right" onClick={() => nav("/shop?category=denims")}>
                     Denims
                   </button>
-                  <button className="text-right" onClick={() => nav("/shop?category=Dresses")}>
+                  <button className="text-right" onClick={() => nav("/shop?category=dresses")}>
                     Dresses
                   </button>
                   <button className="text-right text-lg border-t border-white/10 pt-4" onClick={() => nav("/about")}>
@@ -1034,11 +1043,11 @@ function StoreLayoutContent({ children }: { children: ReactNode }) {
                   <h3 className="mb-5 text-[11px] font-bold uppercase tracking-wider">{isEnglish ? "Shop" : "تسوقي"}</h3>
                   <div className="flex flex-col gap-3 text-[12px] text-[#1c2822]/60">
                     <Link to="/shop?collection=new">{isEnglish ? "New collection" : "وصل حديثاً"}</Link>
-                    <Link to="/shop?category=Sets">Sets</Link>
-                    <Link to="/shop?category=Blouses%20%2F%20shirts">Blouses / shirts</Link>
-                    <Link to="/shop?category=Skirts%20%2F%20pants">Skirts / pants</Link>
-                    <Link to="/shop?category=Denims">Denims</Link>
-                    <Link to="/shop?category=Dresses">Dresses</Link>
+                    <Link to="/shop?category=sets">Sets</Link>
+                    <Link to="/shop?category=blouses-shirts">Blouses / shirts</Link>
+                    <Link to="/shop?category=skirts-pants">Skirts / pants</Link>
+                    <Link to="/shop?category=denims">Denims</Link>
+                    <Link to="/shop?category=dresses">Dresses</Link>
                   </div>
                 </div>
 

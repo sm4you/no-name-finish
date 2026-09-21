@@ -22,6 +22,7 @@ import { ProductCard } from "@/components/store/ProductCard";
 import { Product, SiteSettings, ProductVariant } from "@shared/api";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
+import { VideoPlayer } from "@/components/ui/VideoPlayer";
 
 export default function ProductDetails() {
   const { slug } = useParams<{ slug: string }>();
@@ -561,25 +562,15 @@ export default function ProductDetails() {
               </button>
 
               {/* Video Player */}
-              <div className="relative aspect-[9/16] max-h-[75vh] w-full bg-black flex items-center justify-center">
-                <video
-                  autoPlay
-                  controls
-                  playsInline
-                  loop
+              <div className="relative aspect-[9/16] max-h-[75vh] w-full bg-black flex items-center justify-center overflow-hidden">
+                <VideoPlayer
+                  url={videoUrl}
                   poster={selectedImage || images[0]}
-                  onError={(e) => {
-                    const videoEl = e.currentTarget;
-                    if (videoEl && !videoEl.src.includes("ForBiggerBlazes")) {
-                      videoEl.src = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
-                      videoEl.play().catch(() => {});
-                    }
-                  }}
-                  className="w-full h-full object-cover"
-                >
-                  <source src={videoUrl} type="video/mp4" />
-                  <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4" />
-                </video>
+                  autoPlay={true}
+                  controls={true}
+                  showSoundToggle={true}
+                  isEnglish={isEnglish}
+                />
               </div>
 
               {/* Modal Bottom Bar */}

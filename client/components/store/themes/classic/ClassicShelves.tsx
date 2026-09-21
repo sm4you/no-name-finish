@@ -98,32 +98,32 @@ export function ClassicShelves() {
     <>
       <CollectionShelf
         title="Sets"
-        category="أطقم"
+        category="sets"
         products={sets}
         isEnglish={isEnglish}
       />
       <CollectionShelf
         title="Blouses / shirts"
-        category="توبس"
+        category="blouses-shirts"
         products={tops}
         isEnglish={isEnglish}
       />
       <CollectionShelf
         title="Skirts / pants"
-        category="بنطال"
+        category="skirts-pants"
         products={pants}
         isEnglish={isEnglish}
       />
       <CollectionShelf
         title="Dresses"
-        category="فساتين"
+        category="dresses"
         products={dresses}
         isEnglish={isEnglish}
       />
       {denims.length > 0 && (
         <CollectionShelf
           title="Denims"
-          category="جينز"
+          category="denims"
           products={denims}
           isEnglish={isEnglish}
         />

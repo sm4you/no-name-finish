@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Category, Product, Order, SiteSettings, Coupon, SectionSettings, PageSettings, AdminUser } from "@shared/api";
+import { Category, Product, Order, SiteSettings, Coupon, SectionSettings, PageSettings, AdminUser } from "../shared/api";
 
 export interface InMemoryStore {
   categories: Category[];
@@ -89,11 +89,11 @@ const defaultSettings: SiteSettings = {
   discoverItems: [
     {
       id: "v1",
-      title: "Daytime Linen Collection",
-      titleAr: "إطلالات الكتان النهاري",
-      image: "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=600&q=80",
-      video: "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-posing-in-a-studio-setting-42289-large.mp4",
-      link: "/shop?category=Sets",
+      title: "Latest Lookbook Reel",
+      titleAr: "أحدث إطلالات الفساتين والأطقم",
+      image: "https://img.youtube.com/vi/fJgwVW9rKHA/hqdefault.jpg",
+      video: "https://youtube.com/shorts/fJgwVW9rKHA?si=M-poypgeahA4pd8f",
+      link: "/shop?collection=new",
     },
     {
       id: "v2",
@@ -439,3 +439,19 @@ export function initializeStore(): InMemoryStore {
 }
 
 export const globalStore = initializeStore();
+
+export function saveStoreBackup() {
+  try {
+    const backupPath = path.resolve(process.cwd(), "store_backup.json");
+    const data = {
+      categories: globalStore.categories,
+      products: globalStore.products,
+      siteSettings: globalStore.settings,
+      sections: globalStore.sections,
+      pageSettings: globalStore.pageSettings,
+    };
+    fs.writeFileSync(backupPath, JSON.stringify(data, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to save store_backup.json:", err);
+  }
+}

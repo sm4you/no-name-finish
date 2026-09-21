@@ -52,13 +52,16 @@ import {
   AdminUser,
   AdminRole,
   AdminPermissions,
+  parseVideoUrl,
 } from "@shared/api";
 import { Button } from "@/components/ui/button";
+import { VideoPlayer } from "@/components/ui/VideoPlayer";
+import { DiscoverVideosManager } from "@/components/admin/DiscoverVideosManager";
 
 export default function Admin() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<
-    "overview" | "orders" | "products" | "categories" | "sections" | "pages" | "theme" | "coupons" | "admins"
+    "overview" | "orders" | "products" | "categories" | "videos" | "sections" | "pages" | "theme" | "coupons" | "admins"
   >("overview");
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -383,10 +386,11 @@ export default function Admin() {
         body: JSON.stringify({ type: "siteSettings", data: updatedSettings }),
       });
       if (res.ok) {
-        showToast("تم حفظ فيديوهات ريلز Discover your style بنجاح!");
+        showToast("تم حفظ فيديوهات ريلز Discover بنجاح وتحديث الموقع!");
       }
     } catch (err) {
       console.error(err);
+      showToast("حدث خطأ أثناء حفظ الفيديوهات");
     }
   };
 
@@ -431,9 +435,16 @@ export default function Admin() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "sections", data: updatedSections }),
       });
+      if (settings?.discoverItems) {
+        await fetch("/api/admin/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "siteSettings", data: settings }),
+        });
+      }
       if (res.ok) {
         setSections(updatedSections);
-        showToast("تم حفظ محتوى السيكشن بنجاح!");
+        showToast("تم حفظ محتوى السيكشن والفيديوهات بنجاح!");
       }
     } catch (err) {
       console.error(err);
@@ -1004,6 +1015,18 @@ export default function Admin() {
             >
               <Layout className="w-4 h-4" />
               <span>محتوى السيكشنات</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("videos")}
+              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition whitespace-nowrap ${
+                activeTab === "videos"
+                  ? "bg-[#1c1817] text-white shadow-xs"
+                  : "text-[#554e4a] hover:text-[#1c1817] hover:bg-[#f2ece4]"
+              }`}
+            >
+              <Video className="w-4 h-4 text-[#8a5d3b]" />
+              <span>فيديوهات ريلز (Discover)</span>
+              <span className="text-[10px] opacity-75">({settings?.discoverItems?.length || 0})</span>
             </button>
             <button
               onClick={() => setActiveTab("pages")}
@@ -2040,269 +2063,17 @@ export default function Admin() {
 
               {/* Specialized Discover Video Reels Manager for Classic Template */}
               {selectedSectionKey === "discover" && (
-                <div className="mt-6 pt-6 border-t border-[#f4f0eb] space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold text-sm text-[#1c1817] flex items-center gap-2">
-                        <Video className="w-4 h-4 text-[#8a5d3b]" />
-                        <span>فيديوهات ريلز Discover your style (القالب الكلاسيكي)</span>
-                      </h3>
-                      <p className="text-[11px] text-[#7e746c] mt-0.5">
-                        هذه الفيديوهات تظهر في الصفحة الرئيسية كبطاقات فيديو تفاعلية (Reels) مع إمكانية تشغيلها وربطها بروابط الشراء.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        const current = settings?.discoverItems || [];
-                        const newItem = {
-                          id: "v" + Date.now(),
-                          title: "New Outfit Look",
-                          titleAr: "إطلالة جديدة",
-                          image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80",
-                          video: "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-posing-in-a-studio-setting-42289-large.mp4",
-                          link: "/shop",
-                        };
-                        const updated = [...current, newItem];
-                        if (settings) {
-                          setSettings({ ...settings, discoverItems: updated });
-                        }
-                      }}
-                      className="bg-[#1c1817] hover:bg-[#38312f] text-white text-xs h-8 rounded-xl gap-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>إضافة فيديو ريلز جديد</span>
-                    </Button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {(settings?.discoverItems && settings.discoverItems.length > 0
-                      ? settings.discoverItems
-                      : [
-                          {
-                            id: "v1",
-                            title: "Daytime Linen",
-                            titleAr: "كتان نهاري مريح",
-                            image: "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=600&q=80",
-                            video: "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-posing-in-a-studio-setting-42289-large.mp4",
-                            link: "/shop?category=Sets",
-                          },
-                          {
-                            id: "v2",
-                            title: "City Walks",
-                            titleAr: "إطلالات المدينة",
-                            image: "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=600&q=80",
-                            video: "https://assets.mixkit.co/videos/preview/mixkit-woman-turning-while-wearing-a-dress-41870-large.mp4",
-                            link: "/shop?category=Dresses",
-                          },
-                          {
-                            id: "v3",
-                            title: "Evening Ease",
-                            titleAr: "أناقة المساء",
-                            image: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&q=80",
-                            video: "https://assets.mixkit.co/videos/preview/mixkit-model-walking-in-a-summer-dress-41871-large.mp4",
-                            link: "/shop?collection=new",
-                          },
-                          {
-                            id: "v4",
-                            title: "The Relaxed Fit",
-                            titleAr: "القصة الواسعة",
-                            image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80",
-                            video: "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-posing-in-neon-lights-42290-large.mp4",
-                            link: "/shop?category=Skirts%20%2F%20pants",
-                          },
-                        ]
-                    ).map((item, idx) => (
-                      <div
-                        key={item.id || idx}
-                        className="bg-[#faf8f5] border border-[#e4ded6] rounded-2xl p-4 space-y-3 relative group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-[#1c1817]">فيديو ريلز #{idx + 1}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const current = settings?.discoverItems || [];
-                              const updated = current.filter((_, i) => i !== idx);
-                              if (settings) {
-                                setSettings({ ...settings, discoverItems: updated });
-                              }
-                            }}
-                            className="text-red-500 hover:text-red-700 p-1"
-                            title="حذف هذا الفيديو"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 text-[11px]">
-                          <div>
-                            <label className="block text-[#554e4a] font-medium mb-1">العنوان بالعربية</label>
-                            <input
-                              type="text"
-                              value={item.titleAr || ""}
-                              onChange={(e) => {
-                                const current = [...(settings?.discoverItems || [])];
-                                if (current[idx]) {
-                                  current[idx] = { ...current[idx], titleAr: e.target.value };
-                                  if (settings) setSettings({ ...settings, discoverItems: current });
-                                }
-                              }}
-                              className="w-full px-2.5 py-1.5 rounded-lg border border-[#e4ded6] bg-white"
-                              placeholder="كتان نهاري مريح"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[#554e4a] font-medium mb-1">العنوان بالإنجليزية</label>
-                            <input
-                              type="text"
-                              value={item.title || ""}
-                              onChange={(e) => {
-                                const current = [...(settings?.discoverItems || [])];
-                                if (current[idx]) {
-                                  current[idx] = { ...current[idx], title: e.target.value };
-                                  if (settings) setSettings({ ...settings, discoverItems: current });
-                                }
-                              }}
-                              className="w-full px-2.5 py-1.5 rounded-lg border border-[#e4ded6] bg-white"
-                              placeholder="Daytime Linen"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Video File / URL with device upload */}
-                        <div>
-                          <label className="block text-[#554e4a] font-medium mb-1 text-[11px]">
-                            ملف / رابط الفيديو (MP4)
-                          </label>
-                          <div className="flex gap-1.5">
-                            <input
-                              type="text"
-                              value={item.video || ""}
-                              onChange={(e) => {
-                                const current = [...(settings?.discoverItems || [])];
-                                if (current[idx]) {
-                                  current[idx] = { ...current[idx], video: e.target.value };
-                                  if (settings) setSettings({ ...settings, discoverItems: current });
-                                }
-                              }}
-                              className="flex-1 px-2.5 py-1.5 rounded-lg border border-[#e4ded6] bg-white font-mono text-[10px]"
-                              placeholder="رابط الفيديو أو ارفعه من الجهاز..."
-                            />
-                            <label className="cursor-pointer bg-white border border-[#e4ded6] hover:bg-[#eeece1] px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 text-[#1c1817]">
-                              <Video className="w-3 h-3 text-[#8a5d3b]" />
-                              <span>رفع فيديو</span>
-                              <input
-                                type="file"
-                                accept="video/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    handleFileUpload(file, (url) => {
-                                      const current = [...(settings?.discoverItems || [])];
-                                      if (current[idx]) {
-                                        current[idx] = { ...current[idx], video: url };
-                                        if (settings) setSettings({ ...settings, discoverItems: current });
-                                      }
-                                    });
-                                  }
-                                }}
-                              />
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Poster Image with device upload */}
-                        <div>
-                          <label className="block text-[#554e4a] font-medium mb-1 text-[11px]">
-                            صورة الغلاف (Poster)
-                          </label>
-                          <div className="flex gap-1.5">
-                            <input
-                              type="text"
-                              value={item.image || ""}
-                              onChange={(e) => {
-                                const current = [...(settings?.discoverItems || [])];
-                                if (current[idx]) {
-                                  current[idx] = { ...current[idx], image: e.target.value };
-                                  if (settings) setSettings({ ...settings, discoverItems: current });
-                                }
-                              }}
-                              className="flex-1 px-2.5 py-1.5 rounded-lg border border-[#e4ded6] bg-white font-mono text-[10px]"
-                              placeholder="رابط الغلاف أو ارفعه من الجهاز..."
-                            />
-                            <label className="cursor-pointer bg-white border border-[#e4ded6] hover:bg-[#eeece1] px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 text-[#1c1817]">
-                              <UploadCloud className="w-3 h-3 text-[#8a5d3b]" />
-                              <span>رفع غلاف</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    handleFileUpload(file, (url) => {
-                                      const current = [...(settings?.discoverItems || [])];
-                                      if (current[idx]) {
-                                        current[idx] = { ...current[idx], image: url };
-                                        if (settings) setSettings({ ...settings, discoverItems: current });
-                                      }
-                                    });
-                                  }
-                                }}
-                              />
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Target Link */}
-                        <div>
-                          <label className="block text-[#554e4a] font-medium mb-1 text-[11px]">
-                            رابط الزر (تسوقي الإطلالة)
-                          </label>
-                          <input
-                            type="text"
-                            value={item.link || ""}
-                            onChange={(e) => {
-                              const current = [...(settings?.discoverItems || [])];
-                              if (current[idx]) {
-                                current[idx] = { ...current[idx], link: e.target.value };
-                                if (settings) setSettings({ ...settings, discoverItems: current });
-                              }
-                            }}
-                            className="w-full px-2.5 py-1.5 rounded-lg border border-[#e4ded6] bg-white font-mono text-[10px]"
-                            placeholder="/shop?category=Sets"
-                          />
-                        </div>
-
-                        {/* Small Video preview box */}
-                        {item.video && (
-                          <div className="relative aspect-[16/9] rounded-lg overflow-hidden bg-black border border-black/10">
-                            <video
-                              src={item.video}
-                              poster={item.image}
-                              controls
-                              playsInline
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex justify-end pt-2">
-                    <Button
-                      type="button"
-                      onClick={() => handleSaveDiscoverItems(settings?.discoverItems || [])}
-                      className="bg-[#8a5d3b] hover:bg-[#724a2c] text-white text-xs px-5 h-8 rounded-xl"
-                    >
-                      <Save className="w-3.5 h-3.5 ml-1" />
-                      حفظ فيديوهات ريلز Discover
-                    </Button>
-                  </div>
+                <div className="mt-6 pt-6 border-t border-[#f4f0eb]">
+                  <DiscoverVideosManager
+                    items={settings?.discoverItems || []}
+                    onChange={(updated) => {
+                      if (settings) {
+                        setSettings({ ...settings, discoverItems: updated });
+                      }
+                    }}
+                    onSave={(updated) => handleSaveDiscoverItems(updated)}
+                    handleFileUpload={handleFileUpload}
+                  />
                 </div>
               )}
 
@@ -2316,6 +2087,22 @@ export default function Admin() {
                 </Button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ======================= VIDEOS & REELS (DISCOVER) TAB ======================= */}
+        {activeTab === "videos" && (
+          <div className="space-y-6 max-w-5xl">
+            <DiscoverVideosManager
+              items={settings?.discoverItems || []}
+              onChange={(updated) => {
+                if (settings) {
+                  setSettings({ ...settings, discoverItems: updated });
+                }
+              }}
+              onSave={(updated) => handleSaveDiscoverItems(updated)}
+              handleFileUpload={handleFileUpload}
+            />
           </div>
         )}
 

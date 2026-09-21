@@ -584,11 +584,11 @@
     "discoverItems": [
       {
         "id": "v1",
-        "title": "Daytime Linen Collection",
-        "titleAr": "إطلالات الكتان النهاري",
-        "image": "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=600&q=80",
-        "video": "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-posing-in-a-studio-setting-42289-large.mp4",
-        "link": "/shop?category=Sets"
+        "title": "Latest Lookbook Reel",
+        "titleAr": "أحدث إطلالات الفساتين والأطقم",
+        "image": "https://img.youtube.com/vi/fJgwVW9rKHA/hqdefault.jpg",
+        "video": "https://youtube.com/shorts/fJgwVW9rKHA?si=M-poypgeahA4pd8f",
+        "link": "/shop?collection=new"
       },
       {
         "id": "v2",

@@ -1,17 +1,18 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Volume2, VolumeX, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles, ChevronLeft, ChevronRight, ShoppingBag, ArrowUpRight } from "lucide-react";
 import { useStore } from "@/components/store/StoreLayout";
 import { DiscoverVideoItem } from "@shared/api";
+import { VideoPlayer } from "@/components/ui/VideoPlayer";
 
 export const defaultDiscoverVideos: DiscoverVideoItem[] = [
   {
     id: "v1",
-    title: "Daytime Linen Collection",
-    titleAr: "إطلالات الكتان النهاري",
-    image: "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=600&q=80",
-    video: "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-posing-in-a-studio-setting-42289-large.mp4",
-    link: "/shop?category=Sets",
+    title: "Latest Lookbook Reel",
+    titleAr: "أحدث إطلالات الفساتين والأطقم",
+    image: "https://img.youtube.com/vi/fJgwVW9rKHA/hqdefault.jpg",
+    video: "https://youtube.com/shorts/fJgwVW9rKHA?si=M-poypgeahA4pd8f",
+    link: "/shop?collection=new",
   },
   {
     id: "v2",
@@ -19,7 +20,7 @@ export const defaultDiscoverVideos: DiscoverVideoItem[] = [
     titleAr: "حركة وأناقة الفساتين",
     image: "https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=600&q=80",
     video: "https://assets.mixkit.co/videos/preview/mixkit-woman-turning-while-wearing-a-dress-41870-large.mp4",
-    link: "/shop?category=Dresses",
+    link: "/shop?category=dresses",
   },
   {
     id: "v3",
@@ -35,7 +36,7 @@ export const defaultDiscoverVideos: DiscoverVideoItem[] = [
     titleAr: "أناقة بسيطة ومحتشمة",
     image: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&q=80",
     video: "https://assets.mixkit.co/videos/preview/mixkit-woman-in-a-turtleneck-sweater-posing-for-the-camera-42790-large.mp4",
-    link: "/shop?category=Blouses%20%2F%20shirts",
+    link: "/shop?category=blouses-shirts",
   },
   {
     id: "v5",
@@ -43,7 +44,7 @@ export const defaultDiscoverVideos: DiscoverVideoItem[] = [
     titleAr: "أناقة الإطلالات اليومية",
     image: "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=600&q=80",
     video: "https://assets.mixkit.co/videos/preview/mixkit-a-stylish-woman-in-an-autumn-outfit-posing-in-a-park-42784-large.mp4",
-    link: "/shop?category=Skirts%20%2F%20pants",
+    link: "/shop?category=skirts-pants",
   },
   {
     id: "v6",
@@ -51,7 +52,7 @@ export const defaultDiscoverVideos: DiscoverVideoItem[] = [
     titleAr: "جلسة تصوير حصرية",
     image: "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=600&q=80",
     video: "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-posing-in-neon-lights-42290-large.mp4",
-    link: "/shop?collection=bestsellers",
+    link: "/shop?category=sets",
   },
 ];
 
@@ -65,54 +66,6 @@ function DiscoverCard({
   isDragging: boolean;
 }) {
   const navigate = useNavigate();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [isMuted, setIsMuted] = useState(true);
-
-  // Auto-play the video continuously on load and when entering viewport
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    video.muted = true;
-    const tryPlay = () => {
-      video.play().catch(() => {
-        // Autoplay policy fallback: keep muted and retry on interaction
-      });
-    };
-
-    tryPlay();
-
-    // IntersectionObserver to ensure playback when visible
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            video.play().catch(() => {});
-          }
-        });
-      },
-      { threshold: 0.25 }
-    );
-
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  // Toggle Mute / Sound Only
-  const toggleMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (!videoRef.current) return;
-    const nextMuted = !videoRef.current.muted;
-    videoRef.current.muted = nextMuted;
-    setIsMuted(nextMuted);
-  };
 
   const handleCardClick = () => {
     if (isDragging) return;
@@ -121,44 +74,48 @@ function DiscoverCard({
     }
   };
 
+  const title = isEnglish ? (item.title || item.titleAr) : (item.titleAr || item.title);
+
   return (
     <div
-      ref={cardRef}
-      className="group relative w-[230px] sm:w-[260px] md:w-[280px] aspect-[9/16] flex-shrink-0 snap-start rounded-2xl sm:rounded-3xl overflow-hidden bg-neutral-900 shadow-md cursor-pointer select-none transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5 border border-black/10"
+      className="group relative w-[240px] sm:w-[270px] md:w-[290px] aspect-[9/16] flex-shrink-0 snap-start rounded-2xl sm:rounded-3xl overflow-hidden bg-neutral-900 shadow-md cursor-pointer select-none transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5 border border-black/10 flex flex-col justify-between"
       onClick={handleCardClick}
     >
-      {/* Continuous Auto-Playing Promotional Video */}
-      <video
-        ref={videoRef}
-        src={item.video}
-        poster={item.image}
-        autoPlay
-        playsInline
-        muted={isMuted}
-        loop
-        preload="auto"
-        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-      />
+      {/* Background Video Player (Supports YouTube Shorts, YouTube, Vimeo, and MP4 uploads) */}
+      <div className="absolute inset-0 z-0">
+        <VideoPlayer
+          url={item.video}
+          poster={item.image}
+          autoPlay={true}
+          loop={true}
+          muted={true}
+          showSoundToggle={true}
+          isEnglish={isEnglish}
+        />
+      </div>
 
-      {/* Subtle bottom shadow gradient to elevate the look */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
+      {/* Top Badge Overlay */}
+      <div className="relative z-10 p-4 flex items-center justify-between pointer-events-none">
+        <span className="px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-[10px] tracking-wider text-white uppercase font-bold border border-white/20">
+          Reel
+        </span>
+      </div>
 
-      {/* Only Sound / Mute Toggle Button */}
-      <button
-        type="button"
-        onClick={toggleMute}
-        className={`absolute bottom-3.5 ${
-          isEnglish ? "right-3.5" : "left-3.5"
-        } w-10 h-10 rounded-full bg-black/55 hover:bg-black/85 text-white flex items-center justify-center backdrop-blur-md transition-all duration-200 shadow-lg border border-white/20 hover:scale-110 active:scale-95 cursor-pointer z-20`}
-        aria-label={isMuted ? "تشغيل الصوت" : "كتم الصوت"}
-        title={isMuted ? (isEnglish ? "Unmute" : "تشغيل الصوت") : (isEnglish ? "Mute" : "كتم الصوت")}
-      >
-        {isMuted ? (
-          <VolumeX size={17} className="text-white/90" />
-        ) : (
-          <Volume2 size={17} className="text-white animate-pulse" />
+      {/* Bottom Title & Action Overlay */}
+      <div className="relative z-10 p-4 bg-gradient-to-t from-black/85 via-black/40 to-transparent pt-12 flex flex-col gap-2 pointer-events-none">
+        {title && (
+          <h3 className="text-white font-bold text-sm sm:text-base leading-snug drop-shadow-sm line-clamp-2">
+            {title}
+          </h3>
         )}
-      </button>
+
+        <div className="flex items-center justify-between pt-1">
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-white/95 bg-white/20 hover:bg-white/30 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/30 transition shadow">
+            <span>{isEnglish ? "Shop Look" : "تسوقي الإطلالة"}</span>
+            <ArrowUpRight size={13} className={isEnglish ? "" : "rotate-90"} />
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

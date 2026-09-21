@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
-import { globalStore } from "./store";
-import { CreateOrderRequest, Order, OrderItem, PaymentMethod, normalizeCategorySlug } from "@shared/api";
+import { globalStore, saveStoreBackup } from "./store";
+import { CreateOrderRequest, Order, OrderItem, PaymentMethod, normalizeCategorySlug } from "../shared/api";
 import { createClient } from "@supabase/supabase-js";
 
 // Supabase client with graceful fallback
@@ -757,6 +757,10 @@ ${body.notes ? `ملاحظات: ${body.notes}\n` : ""}
         ...req.body,
       };
     }
+
+    // Persist changes to disk so they survive restarts
+    saveStoreBackup();
+
     res.json({
       success: true,
       settings: globalStore.settings,
