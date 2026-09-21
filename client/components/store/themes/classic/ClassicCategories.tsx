@@ -73,7 +73,7 @@ export function ClassicCategories() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
               <div className="absolute bottom-3 inset-x-3 text-center">
                 <span className="block text-white text-xs font-bold tracking-wider">
-                  {isEnglish ? cat.name : cat.nameAr}
+                  {cat.name}
                 </span>
                 <span className="mt-1 block h-0.5 w-6 mx-auto bg-[#d4775c] transition-all group-hover:w-12" />
               </div>

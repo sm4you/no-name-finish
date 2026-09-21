@@ -17,6 +17,7 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import type { SectionSettings, PageSettings, SiteSettings as ApiSiteSettings } from "@shared/api";
+import { useCart } from "@/context/CartContext";
 
 export const defaultStoreProducts = [
   { id: "set-01", name: "طقم كتان بلون الجمل", price: "2,490 ج.م", numericPrice: 2490, category: "أطقم", image: "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=700&q=85", tag: "جديد" },
@@ -443,6 +444,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             category: p.category_slug ? (englishCategories[p.category_slug] || p.category_slug) : (p.category || "أطقم"),
             image: p.image || (p.images && p.images[0]) || "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=700&q=85",
             images: p.images || [p.image],
+            video: p.video,
             badge: p.badge,
             tag: p.badge || p.tag || "",
             stock: p.stock ?? 12,
@@ -680,6 +682,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
 function StoreLayoutContent({ children }: { children: ReactNode }) {
   const { siteSettings, language, toggleLanguage, theme, cart } = useStore();
+  const { totalCount: cartContextCount } = useCart();
+  const effectiveCart = cartContextCount > 0 ? cartContextCount : cart;
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -864,9 +868,9 @@ function StoreLayoutContent({ children }: { children: ReactNode }) {
                 </button>
                 <button className="relative" onClick={() => navigate("/cart")} aria-label="حقيبة التسوق">
                   <ShoppingBag size={18} strokeWidth={1.4} />
-                  {cart > 0 && (
+                  {effectiveCart > 0 && (
                     <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#d4775c] px-1 text-[9px] text-white font-bold">
-                      {cart}
+                      {effectiveCart}
                     </span>
                   )}
                 </button>
@@ -980,9 +984,9 @@ function StoreLayoutContent({ children }: { children: ReactNode }) {
                   </button>
                   <Link to="/cart" className="relative p-2 text-[#231f1e] hover:text-[#8a5d3b]">
                     <ShoppingBag className="w-5 h-5" />
-                    {cart > 0 && (
+                    {effectiveCart > 0 && (
                       <span className="absolute -top-1 -right-1 bg-[#1c1817] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                        {cart}
+                        {effectiveCart}
                       </span>
                     )}
                   </Link>
@@ -1030,11 +1034,11 @@ function StoreLayoutContent({ children }: { children: ReactNode }) {
                   <h3 className="mb-5 text-[11px] font-bold uppercase tracking-wider">{isEnglish ? "Shop" : "تسوقي"}</h3>
                   <div className="flex flex-col gap-3 text-[12px] text-[#1c2822]/60">
                     <Link to="/shop?collection=new">{isEnglish ? "New collection" : "وصل حديثاً"}</Link>
-                    <Link to="/shop?category=Sets">{isEnglish ? "Sets" : "الأطقم"}</Link>
-                    <Link to="/shop?category=Blouses%20%2F%20shirts">{isEnglish ? "Blouses / shirts" : "البلوزات والقمصان"}</Link>
-                    <Link to="/shop?category=Skirts%20%2F%20pants">{isEnglish ? "Skirts / pants" : "التنانير والبناطيل"}</Link>
-                    <Link to="/shop?category=Denims">{isEnglish ? "Denims" : "الجينز"}</Link>
-                    <Link to="/shop?category=Dresses">{isEnglish ? "Dresses" : "الفساتين"}</Link>
+                    <Link to="/shop?category=Sets">Sets</Link>
+                    <Link to="/shop?category=Blouses%20%2F%20shirts">Blouses / shirts</Link>
+                    <Link to="/shop?category=Skirts%20%2F%20pants">Skirts / pants</Link>
+                    <Link to="/shop?category=Denims">Denims</Link>
+                    <Link to="/shop?category=Dresses">Dresses</Link>
                   </div>
                 </div>
 
@@ -1172,6 +1176,9 @@ export function ProductCard({ product, index }: { product: StoreProduct; index: 
   const salePrice = product.salePrice ?? product.numericPrice;
   const badge = hasDiscount ? getProductBadge(product) || `-${discount}%` : getProductBadge(product);
 
+  const primaryImage = (product.images && product.images[0]) || product.image;
+  const secondaryImage = product.images && product.images.length > 1 ? product.images[1] : null;
+
   const openProduct = () => navigate(`/product/${product.id}`);
 
   return (
@@ -1185,12 +1192,24 @@ export function ProductCard({ product, index }: { product: StoreProduct; index: 
       tabIndex={0}
     >
       <div className="relative aspect-[.82] overflow-hidden rounded-2xl bg-[#f0f0ee]">
-        <Link to={`/product/${product.id}`} className="block h-full">
+        <Link to={`/product/${product.id}`} className="block h-full relative overflow-hidden">
+          {/* Primary Image */}
           <img
-            src={product.image}
+            src={primaryImage}
             alt={productName}
-            className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+            className={`h-full w-full object-cover transition-all duration-700 ${
+              secondaryImage ? "group-hover:opacity-0 group-hover:scale-105" : "group-hover:scale-105"
+            }`}
           />
+
+          {/* Secondary Hover Image with smooth reveal animation */}
+          {secondaryImage && (
+            <img
+              src={secondaryImage}
+              alt={`${productName} - alternate view`}
+              className="absolute inset-0 h-full w-full object-cover opacity-0 transition-all duration-700 group-hover:opacity-100 group-hover:scale-105"
+            />
+          )}
         </Link>
         {badge && (
           <span

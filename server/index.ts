@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import { globalStore } from "./store";
-import { CreateOrderRequest, Order, OrderItem, PaymentMethod } from "@shared/api";
+import { CreateOrderRequest, Order, OrderItem, PaymentMethod, normalizeCategorySlug } from "@shared/api";
 import { createClient } from "@supabase/supabase-js";
 
 // Supabase client with graceful fallback
@@ -51,15 +51,20 @@ export function createServer(): express.Express {
 
   // Public Products with Filtering
   app.get("/api/products", async (req: Request, res: Response) => {
-    const categorySlug = req.query.category as string | undefined;
+    const rawCategory = req.query.category as string | undefined;
+    const collection = req.query.collection as string | undefined;
     const search = req.query.search ? (req.query.search as string).toLowerCase().trim() : "";
     const sort = req.query.sort as string | undefined;
+
+    const normalizedCategory = normalizeCategorySlug(rawCategory);
 
     try {
       if (supabase) {
         let query = supabase.from("products").select("*").eq("is_active", true);
-        if (categorySlug && categorySlug !== "all") {
-          query = query.eq("category_slug", categorySlug);
+        if (normalizedCategory === "new-collection" || collection === "new") {
+          query = query.or("is_new.eq.true,badge.eq.جديد");
+        } else if (normalizedCategory && normalizedCategory !== "all") {
+          query = query.eq("category_slug", normalizedCategory);
         }
         const { data, error } = await query;
         if (!error && data && data.length > 0) {
@@ -81,8 +86,19 @@ export function createServer(): express.Express {
 
     let result = [...globalStore.products];
 
-    if (categorySlug && categorySlug !== "all") {
-      result = result.filter((p) => p.category_slug === categorySlug);
+    if (normalizedCategory === "new-collection" || collection === "new") {
+      result = result.filter(
+        (p) => p.is_new || p.category_slug === "new-collection" || p.badge === "جديد" || (p as any).tag === "جديد"
+      );
+    } else if (normalizedCategory && normalizedCategory !== "all") {
+      result = result.filter(
+        (p) =>
+          p.category_slug === normalizedCategory ||
+          p.category_id === normalizedCategory ||
+          p.category_id === `cat-${normalizedCategory}` ||
+          p.category_slug?.toLowerCase() === normalizedCategory ||
+          (p as any).category === normalizedCategory
+      );
     }
 
     if (search) {

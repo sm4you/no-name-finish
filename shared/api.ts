@@ -253,3 +253,94 @@ export interface DemoResponse {
   message: string;
 }
 
+export function normalizeCategorySlug(raw?: string | null): string {
+  if (!raw || raw === "all" || raw === "الكل") return "all";
+  let str = "";
+  try {
+    str = decodeURIComponent(raw).trim().toLowerCase();
+  } catch {
+    str = (raw || "").trim().toLowerCase();
+  }
+
+  if (
+    str === "sets" ||
+    str === "set" ||
+    str === "أطقم" ||
+    str === "الأطقم" ||
+    str === "اطقم"
+  ) {
+    return "sets";
+  }
+  if (
+    str === "blouses-shirts" ||
+    str === "blouses / shirts" ||
+    str === "blouses/shirts" ||
+    str === "blouses_shirts" ||
+    str === "blouses" ||
+    str === "shirts" ||
+    str === "توبس" ||
+    str === "بلوزات وقمصان" ||
+    str === "بلوزات" ||
+    str === "قمصان" ||
+    str === "البلوزات والقمصان"
+  ) {
+    return "blouses-shirts";
+  }
+  if (
+    str === "skirts-pants" ||
+    str === "skirts / pants" ||
+    str === "skirts/pants" ||
+    str === "skirts_pants" ||
+    str === "skirts" ||
+    str === "pants" ||
+    str === "بنطال" ||
+    str === "بناطيل" ||
+    str === "تنانير" ||
+    str === "تنانير وبناطيل" ||
+    str === "التنانير والبناطيل"
+  ) {
+    return "skirts-pants";
+  }
+  if (
+    str === "denims" ||
+    str === "denim" ||
+    str === "جينز" ||
+    str === "الجينز" ||
+    str === "جينز ودنيم" ||
+    str === "الجينز والدنيم"
+  ) {
+    return "denims";
+  }
+  if (
+    str === "dresses" ||
+    str === "dress" ||
+    str === "فساتين" ||
+    str === "الفساتين" ||
+    str === "فستان"
+  ) {
+    return "dresses";
+  }
+  if (
+    str === "jackets" ||
+    str === "jacket" ||
+    str === "جاكيتات" ||
+    str === "الجاكيتات" ||
+    str === "جاكيت"
+  ) {
+    return "jackets";
+  }
+  if (
+    str === "new" ||
+    str === "new-collection" ||
+    str === "new collection" ||
+    str === "new_collection" ||
+    str === "arrivals" ||
+    str === "وصل حديثاً" ||
+    str === "جديد"
+  ) {
+    return "new-collection";
+  }
+
+  return str.replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+

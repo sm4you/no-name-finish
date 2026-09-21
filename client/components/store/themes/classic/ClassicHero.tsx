@@ -24,7 +24,10 @@ export function ClassicHero() {
         <span className="mb-4 inline-block font-sans text-xs tracking-[0.3em] uppercase text-[#e6b980] font-semibold">
           {siteSettings.heroTitle || (isEnglish ? "New for Summer 2026" : "تشكيلة صيف 2026")}
         </span>
-        <h1 className="font-times text-4xl sm:text-6xl md:text-7xl font-bold tracking-[0.08em] leading-tight text-white">
+        <h1
+          className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-[0.08em] leading-tight text-white"
+          style={{ fontFamily: "'Times New Roman', Times, serif" }}
+        >
           {siteSettings.storeName || "No Name"}
         </h1>
         <p className="mx-auto mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-white/80 font-light">

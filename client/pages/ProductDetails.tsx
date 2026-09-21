@@ -17,7 +17,7 @@ import {
   AlertTriangle,
   X,
 } from "lucide-react";
-import { StoreLayout } from "@/components/store/StoreLayout";
+import { StoreLayout, useStore } from "@/components/store/StoreLayout";
 import { ProductCard } from "@/components/store/ProductCard";
 import { Product, SiteSettings, ProductVariant } from "@shared/api";
 import { useCart } from "@/context/CartContext";
@@ -27,6 +27,8 @@ export default function ProductDetails() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { language } = useStore();
+  const isEnglish = language === "en";
 
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
@@ -79,6 +81,30 @@ export default function ProductDetails() {
       .catch(() => {});
   }, [slug]);
 
+  // Helper for color name in Arabic or English
+  const getColorName = (hex: string) => {
+    const h = hex?.toLowerCase() || "";
+    if (isEnglish) {
+      if (h === "#1a1a1a" || h === "#000000" || h === "#222222" || h === "#1c1817" || h === "black") return "Black";
+      if (h === "#b29d89" || h === "#d4775c" || h === "#8a5d3b" || h === "#a77b5a" || h === "camel") return "Camel / Tan";
+      if (h === "#d8d1c2" || h === "#f0eae2" || h === "#f5ede6" || h === "#e6dfd5" || h === "beige" || h === "cream") return "Beige / Cream";
+      if (h === "#4a5d4e" || h === "#7d8a76" || h === "#556b2f" || h === "#2e4a3e" || h === "olive") return "Olive / Green";
+      if (h === "#1b2a4a" || h === "#2c3e50" || h === "#0f172a" || h === "navy") return "Navy Blue";
+      if (h === "#ffffff" || h === "#fafafa" || h === "white") return "White";
+      if (h === "#91b6d6" || h === "#45627a" || h === "denim" || h === "blue") return "Denim Blue";
+      return hex;
+    } else {
+      if (h === "#1a1a1a" || h === "#000000" || h === "#222222" || h === "#1c1817" || h === "black") return "أسود";
+      if (h === "#b29d89" || h === "#d4775c" || h === "#8a5d3b" || h === "#a77b5a" || h === "camel") return "جملي / هافان";
+      if (h === "#d8d1c2" || h === "#f0eae2" || h === "#f5ede6" || h === "#e6dfd5" || h === "beige" || h === "cream") return "بيج / نود";
+      if (h === "#4a5d4e" || h === "#7d8a76" || h === "#556b2f" || h === "#2e4a3e" || h === "olive") return "زيتي / أخضر";
+      if (h === "#1b2a4a" || h === "#2c3e50" || h === "#0f172a" || h === "navy") return "كحلي";
+      if (h === "#ffffff" || h === "#fafafa" || h === "white") return "أبيض";
+      if (h === "#91b6d6" || h === "#45627a" || h === "denim" || h === "blue") return "أزرق دنيم";
+      return hex;
+    }
+  };
+
   if (loading) {
     return (
       <StoreLayout>
@@ -101,10 +127,14 @@ export default function ProductDetails() {
     return (
       <StoreLayout>
         <div className="max-w-3xl mx-auto px-4 py-24 text-center">
-          <h2 className="text-2xl font-bold text-[#1c1817] mb-4">المنتج غير متوفر حالياً</h2>
-          <p className="text-sm text-[#786e66] mb-8">ربما تم حذف هذا المنتج أو نقله إلى قسم آخر.</p>
+          <h2 className="text-2xl font-bold text-[#1c1817] mb-4">
+            {isEnglish ? "Product currently unavailable" : "المنتج غير متوفر حالياً"}
+          </h2>
+          <p className="text-sm text-[#786e66] mb-8">
+            {isEnglish ? "This piece may have been removed or relocated." : "ربما تم حذف هذا المنتج أو نقله إلى قسم آخر."}
+          </p>
           <Button asChild className="bg-[#1c1817] text-white">
-            <Link to="/shop">العودة إلى المتجر</Link>
+            <Link to="/shop">{isEnglish ? "Return to Store" : "العودة إلى المتجر"}</Link>
           </Button>
         </div>
       </StoreLayout>
@@ -115,18 +145,6 @@ export default function ProductDetails() {
   const hasDiscount = product.original_price && product.price < product.original_price;
   const sizes = product.sizes && product.sizes.length > 0 ? product.sizes : ["S", "M", "L", "XL"];
   const colors = product.colors && product.colors.length > 0 ? product.colors : ["#222222", "#d8d1c2"];
-
-  // Helper for color name in Arabic
-  const getColorName = (hex: string) => {
-    const h = hex?.toLowerCase() || "";
-    if (h === "#1a1a1a" || h === "#000000" || h === "#222222" || h === "#1c1817" || h === "black") return "أسود";
-    if (h === "#b29d89" || h === "#d4775c" || h === "#8a5d3b" || h === "#a77b5a" || h === "camel") return "جملي / هافان";
-    if (h === "#d8d1c2" || h === "#f0eae2" || h === "#f5ede6" || h === "#e6dfd5" || h === "beige" || h === "cream") return "بيج / نود";
-    if (h === "#4a5d4e" || h === "#7d8a76" || h === "#556b2f" || h === "#2e4a3e" || h === "olive") return "زيتي / أخضر";
-    if (h === "#1b2a4a" || h === "#2c3e50" || h === "#0f172a" || h === "navy") return "كحلي";
-    if (h === "#ffffff" || h === "#fafafa" || h === "white") return "أبيض";
-    return hex;
-  };
 
   // Find variant stock for current color + size combination
   const variants = product.variants || [];
@@ -143,8 +161,9 @@ export default function ProductDetails() {
   const isOutOfStock = availableStock <= 0 || product.in_stock === false;
   const isLowStock = !isOutOfStock && availableStock <= (product.low_stock_threshold || 3);
 
-  // Sample or actual video
-  const videoUrl = product.video || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+  // Optional video check
+  const hasVideo = Boolean(product.video && product.video.trim() !== "");
+  const videoUrl = product.video || "";
 
   // Check stock availability per size for the currently selected color
   const getStockForSize = (sz: string) => {
@@ -169,15 +188,13 @@ export default function ProductDetails() {
     navigate("/checkout");
   };
 
-  const whatsappMessage = `مرحباً No Name ✨
-أود الاستفسار عن أو طلب هذا المنتج:
-- اسم المنتج: ${product.name_ar} (${product.name_en})
-- السعر: ${product.price} ج.م
-- المقاس المختار: ${selectedSize}
-- اللون المختار: ${getColorName(selectedColor)}
-- الكمية: ${quantity}
-- حالة التوفر بالمخزون: ${availableStock} قطع متاحة
-- الرابط: ${window.location.href}`;
+  const currentProductName = isEnglish
+    ? product.name_en || product.name_ar
+    : product.name_ar || product.name_en;
+
+  const whatsappMessage = isEnglish
+    ? `Hello No Name ✨\nI'd like to inquire about or order this piece:\n- Product: ${product.name_en || product.name_ar}\n- Price: ${product.price} EGP\n- Size: ${selectedSize}\n- Color: ${getColorName(selectedColor)}\n- Quantity: ${quantity}\n- Stock Availability: ${availableStock} pieces available\n- Link: ${window.location.href}`
+    : `مرحباً No Name ✨\nأود الاستفسار عن أو طلب هذا المنتج:\n- اسم المنتج: ${product.name_ar} (${product.name_en})\n- السعر: ${product.price} ج.م\n- المقاس المختار: ${selectedSize}\n- اللون المختار: ${getColorName(selectedColor)}\n- الكمية: ${quantity}\n- حالة التوفر بالمخزون: ${availableStock} قطع متاحة\n- الرابط: ${window.location.href}`;
 
   const whatsappUrl = `https://wa.me/${settings?.salesWhatsappNumber || "201068568250"}?text=${encodeURIComponent(whatsappMessage)}`;
 
@@ -186,15 +203,15 @@ export default function ProductDetails() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Breadcrumbs */}
         <nav className="flex items-center gap-2 text-xs text-[#80766e] mb-8 overflow-x-auto whitespace-nowrap">
-          <Link to="/" className="hover:text-[#1c1817]">الرئيسية</Link>
-          <ChevronRight className="w-3.5 h-3.5 rotate-180 text-[#b5aba0]" />
-          <Link to="/shop" className="hover:text-[#1c1817]">المتجر</Link>
-          <ChevronRight className="w-3.5 h-3.5 rotate-180 text-[#b5aba0]" />
-          <Link to={`/shop?category=${product.category_slug}`} className="hover:text-[#1c1817] capitalize">
+          <Link to="/" className="hover:text-[#1c1817]">{isEnglish ? "Home" : "الرئيسية"}</Link>
+          <ChevronRight className={`w-3.5 h-3.5 text-[#b5aba0] ${isEnglish ? "" : "rotate-180"}`} />
+          <Link to="/shop" className="hover:text-[#1c1817]">{isEnglish ? "Shop" : "المتجر"}</Link>
+          <ChevronRight className={`w-3.5 h-3.5 text-[#b5aba0] ${isEnglish ? "" : "rotate-180"}`} />
+          <Link to={`/shop?category=${encodeURIComponent(product.category_slug)}`} className="hover:text-[#1c1817]">
             {product.category_slug}
           </Link>
-          <ChevronRight className="w-3.5 h-3.5 rotate-180 text-[#b5aba0]" />
-          <span className="text-[#1c1817] font-semibold">{product.name_ar}</span>
+          <ChevronRight className={`w-3.5 h-3.5 text-[#b5aba0] ${isEnglish ? "" : "rotate-180"}`} />
+          <span className="text-[#1c1817] font-semibold">{currentProductName}</span>
         </nav>
 
         {/* Product Details Grid */}
@@ -205,28 +222,32 @@ export default function ProductDetails() {
             <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-[#f0eae2] border border-[#e8dfd5] shadow-md group">
               <img
                 src={selectedImage || images[0]}
-                alt={product.name_ar}
+                alt={currentProductName}
                 className="w-full h-full object-cover object-center"
                 referrerPolicy="no-referrer"
               />
               {hasDiscount && (
-                <span className="absolute top-4 right-4 bg-[#8a5d3b] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md">
-                  خصم {Math.round(((product.original_price - product.price) / product.original_price) * 100)}%
+                <span className={`absolute top-4 ${isEnglish ? "left-4" : "right-4"} bg-[#d4775c] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md`}>
+                  {isEnglish
+                    ? `SALE ${Math.round(((product.original_price - product.price) / product.original_price) * 100)}%`
+                    : `خصم ${Math.round(((product.original_price - product.price) / product.original_price) * 100)}%`}
                 </span>
               )}
 
-              {/* Video Play Button on Product Image */}
-              <button
-                type="button"
-                onClick={() => setShowVideoModal(true)}
-                className="absolute bottom-4 right-4 bg-white/95 hover:bg-white text-[#1c1817] px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xl backdrop-blur-xs transition-all hover:scale-105 active:scale-95 border border-black/10 cursor-pointer"
-                title="مشاهدة فيديو القطعة والإطلالة"
-              >
-                <div className="w-6 h-6 rounded-full bg-[#1c1817] text-white flex items-center justify-center">
-                  <Play size={12} fill="currentColor" className="ml-0.5" />
-                </div>
-                <span>فيديو الإطلالة (Lookbook)</span>
-              </button>
+              {/* Video Play Button on Product Image (Only if video is provided) */}
+              {hasVideo && (
+                <button
+                  type="button"
+                  onClick={() => setShowVideoModal(true)}
+                  className={`absolute bottom-4 ${isEnglish ? "left-4" : "right-4"} bg-white/95 hover:bg-white text-[#1c1817] px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xl backdrop-blur-xs transition-all hover:scale-105 active:scale-95 border border-black/10 cursor-pointer`}
+                  title={isEnglish ? "Watch Lookbook Video" : "مشاهدة فيديو القطعة والإطلالة"}
+                >
+                  <div className="w-6 h-6 rounded-full bg-[#1c1817] text-white flex items-center justify-center">
+                    <Play size={12} fill="currentColor" className="ml-0.5" />
+                  </div>
+                  <span>{isEnglish ? "Lookbook Video" : "فيديو الإطلالة (Lookbook)"}</span>
+                </button>
+              )}
             </div>
 
             {/* Thumbnail Gallery */}
@@ -245,17 +266,19 @@ export default function ProductDetails() {
                 </button>
               ))}
 
-              {/* Video Thumbnail Button */}
-              <button
-                type="button"
-                onClick={() => setShowVideoModal(true)}
-                className="w-20 aspect-[3/4] rounded-lg overflow-hidden border-2 border-[#8a5d3b]/40 bg-[#1c1817] flex flex-col items-center justify-center text-white flex-shrink-0 hover:border-[#8a5d3b] transition group"
-              >
-                <div className="w-8 h-8 rounded-full bg-white/20 group-hover:bg-[#8a5d3b] flex items-center justify-center mb-1 transition">
-                  <Play size={14} fill="currentColor" className="ml-0.5" />
-                </div>
-                <span className="text-[10px] font-bold">فيديو القطعة</span>
-              </button>
+              {/* Video Thumbnail Button (Only if video is provided) */}
+              {hasVideo && (
+                <button
+                  type="button"
+                  onClick={() => setShowVideoModal(true)}
+                  className="w-20 aspect-[3/4] rounded-lg overflow-hidden border-2 border-[#8a5d3b]/40 bg-[#1c1817] flex flex-col items-center justify-center text-white flex-shrink-0 hover:border-[#8a5d3b] transition group"
+                >
+                  <div className="w-8 h-8 rounded-full bg-white/20 group-hover:bg-[#8a5d3b] flex items-center justify-center mb-1 transition">
+                    <Play size={14} fill="currentColor" className="ml-0.5" />
+                  </div>
+                  <span className="text-[10px] font-bold">{isEnglish ? "Video" : "فيديو القطعة"}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -265,26 +288,31 @@ export default function ProductDetails() {
               <span className="text-xs font-semibold tracking-wider text-[#8a5d3b] uppercase">
                 {product.category_slug}
               </span>
-              <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#1c1817] mt-1">
-                {product.name_ar}
+              <h1
+                className="text-2xl sm:text-3xl font-bold text-[#1c1817] mt-1"
+                style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
+              >
+                {currentProductName}
               </h1>
-              <p className="text-sm text-[#7e746d] font-sans mt-0.5">
-                {product.name_en}
-              </p>
+              {!isEnglish && product.name_en && (
+                <p className="text-sm text-[#7e746d] font-sans mt-0.5">
+                  {product.name_en}
+                </p>
+              )}
             </div>
 
             {/* Price block */}
             <div className="flex items-baseline gap-3 p-4 rounded-xl bg-[#f7f2eb] border border-[#ebe1d5]">
               <span className="text-2xl sm:text-3xl font-bold text-[#1c1817]">
-                {product.price.toLocaleString("ar-EG")} ج.م
+                {product.price.toLocaleString(isEnglish ? "en-US" : "ar-EG")} {isEnglish ? "EGP" : "ج.م"}
               </span>
               {hasDiscount && (
                 <span className="text-sm sm:text-base text-[#a0948a] line-through font-medium">
-                  {product.original_price.toLocaleString("ar-EG")} ج.م
+                  {product.original_price.toLocaleString(isEnglish ? "en-US" : "ar-EG")} {isEnglish ? "EGP" : "ج.م"}
                 </span>
               )}
-              <span className="text-xs text-[#2e7d32] font-semibold mr-auto">
-                شامل ضريبة القيمة المضافة
+              <span className={`text-xs text-[#2e7d32] font-semibold ${isEnglish ? "ml-auto" : "mr-auto"}`}>
+                {isEnglish ? "VAT Included" : "شامل ضريبة القيمة المضافة"}
               </span>
             </div>
 
@@ -292,7 +320,8 @@ export default function ProductDetails() {
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-[#1c1817]">
-                  اللون المختار: <span className="font-semibold text-[#8a5d3b]">{getColorName(selectedColor)}</span>
+                  {isEnglish ? "Selected Color: " : "اللون المختار: "}
+                  <span className="font-semibold text-[#8a5d3b]">{getColorName(selectedColor)}</span>
                 </label>
               </div>
               <div className="flex flex-wrap gap-2.5">
@@ -323,8 +352,12 @@ export default function ProductDetails() {
             {/* Size Selector with variant stock indicator */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-[#1c1817]">اختاري المقاس:</label>
-                <span className="text-[11px] text-[#8a5d3b] font-medium">المقاسات تلائم القياس المعتاد</span>
+                <label className="text-xs font-bold text-[#1c1817]">
+                  {isEnglish ? "Select Size:" : "اختاري المقاس:"}
+                </label>
+                <span className="text-[11px] text-[#8a5d3b] font-medium">
+                  {isEnglish ? "True to regular sizing" : "المقاسات تلائم القياس المعتاد"}
+                </span>
               </div>
               <div className="flex flex-wrap gap-2.5">
                 {sizes.map((s) => {
@@ -347,7 +380,7 @@ export default function ProductDetails() {
                       }`}
                     >
                       <span>{s}</span>
-                      {isSizeEmpty && <span className="text-[9px] font-normal">(نفد)</span>}
+                      {isSizeEmpty && <span className="text-[9px] font-normal">{isEnglish ? "(Sold out)" : "(نفد)"}</span>}
                     </button>
                   );
                 })}
@@ -359,30 +392,46 @@ export default function ProductDetails() {
               {isOutOfStock ? (
                 <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2">
                   <X className="w-4 h-4 text-red-600 shrink-0" />
-                  <span>عذراً، هذا المقاس باللون المختار نفد من المخزون حالياً. يمكنكِ اختيار لون أو مقاس آخر.</span>
+                  <span>
+                    {isEnglish
+                      ? "Sorry, this size in the selected color is currently out of stock. You can pick another color or size."
+                      : "عذراً، هذا المقاس باللون المختار نفد من المخزون حالياً. يمكنكِ اختيار لون أو مقاس آخر."}
+                  </span>
                 </div>
               ) : isLowStock ? (
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 animate-bounce" />
-                  <span>سارعي بالطلب! متبقي {availableStock} قطع فقط من هذا المقاس واللون بالمخزون.</span>
+                  <span>
+                    {isEnglish
+                      ? `Hurry up! Only ${availableStock} piece(s) left in stock for this color & size.`
+                      : `سارعي بالطلب! متبقي ${availableStock} قطع فقط من هذا المقاس واللون بالمخزون.`}
+                  </span>
                 </div>
               ) : (
                 <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>متوفر وجاهز للشحن الفوري ({availableStock} قطع متاحة بالمخزون)</span>
+                  <span>
+                    {isEnglish
+                      ? `In stock & ready for immediate dispatch (${availableStock} items in stock)`
+                      : `متوفر وجاهز للشحن الفوري (${availableStock} قطع متاحة بالمخزون)`}
+                  </span>
                 </div>
               )}
             </div>
 
-            {/* Quantity Stepper (Bounded by availableStock) */}
+            {/* Quantity Stepper */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#1c1817]">الكمية المطلوبة:</label>
+              <label className="text-xs font-bold text-[#1c1817]">
+                {isEnglish ? "Quantity:" : "الكمية المطلوبة:"}
+              </label>
               <div className="flex items-center border border-[#d8cfc4] rounded-xl bg-white w-36 overflow-hidden">
                 <button
                   type="button"
                   disabled={isOutOfStock || quantity <= 1}
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="p-2.5 text-[#524b45] hover:text-[#1c1817] hover:bg-[#f6eee4] rounded-r-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className={`p-2.5 text-[#524b45] hover:text-[#1c1817] hover:bg-[#f6eee4] transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                    isEnglish ? "rounded-l-lg" : "rounded-r-lg"
+                  }`}
                 >
                   <Minus className="w-4 h-4" />
                 </button>
@@ -393,7 +442,9 @@ export default function ProductDetails() {
                   type="button"
                   disabled={isOutOfStock || quantity >= availableStock}
                   onClick={() => setQuantity(Math.min(availableStock, quantity + 1))}
-                  className="p-2.5 text-[#524b45] hover:text-[#1c1817] hover:bg-[#f6eee4] rounded-l-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className={`p-2.5 text-[#524b45] hover:text-[#1c1817] hover:bg-[#f6eee4] transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                    isEnglish ? "rounded-r-lg" : "rounded-l-lg"
+                  }`}
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -413,7 +464,11 @@ export default function ProductDetails() {
                 }`}
               >
                 <ShoppingBag className="w-4 h-4 text-[#e6b980]" />
-                <span>{isOutOfStock ? "نفد من المخزون" : "إضافة إلى سلة المشتريات"}</span>
+                <span>
+                  {isOutOfStock
+                    ? isEnglish ? "Out of Stock" : "نفد من المخزون"
+                    : isEnglish ? "Add to Bag" : "إضافة إلى سلة المشتريات"}
+                </span>
               </Button>
 
               <div className="grid grid-cols-2 gap-3">
@@ -424,7 +479,7 @@ export default function ProductDetails() {
                   size="lg"
                   className="h-11 border-[#8a5d3b] text-[#8a5d3b] hover:bg-[#8a5d3b] hover:text-white font-bold rounded-xl text-xs disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  شراء فوري
+                  {isEnglish ? "Buy Now" : "شراء فوري"}
                 </Button>
 
                 <a
@@ -434,36 +489,58 @@ export default function ProductDetails() {
                   className="h-11 bg-[#25D366] hover:bg-[#1EBE5B] text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-colors"
                 >
                   <MessageCircle className="w-4 h-4 fill-current" />
-                  <span>طلب واتساب مباشر</span>
+                  <span>{isEnglish ? "WhatsApp Order" : "طلب واتساب مباشر"}</span>
                 </a>
               </div>
 
               {addedNotice && (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-lg flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600" />
-                  <span>تمت إضافة القطعة إلى سلتك بنجاح!</span>
+                  <span>
+                    {isEnglish ? "Piece successfully added to your bag!" : "تمت إضافة القطعة إلى سلتك بنجاح!"}
+                  </span>
                 </div>
               )}
             </div>
 
             {/* Description & Details Accordion/Box */}
             <div className="pt-4 border-t border-[#ede5db] space-y-3 text-xs text-[#6e655e] leading-relaxed">
-              <h4 className="font-bold text-[#1c1817] text-sm">وصف القطعة والمميزات:</h4>
-              <p>{product.description_ar}</p>
-              <p className="text-[11px] text-[#8c827a] font-sans">{product.description_en}</p>
+              <h4 className="font-bold text-[#1c1817] text-sm">
+                {isEnglish ? "Product Description & Details:" : "وصف القطعة والمميزات:"}
+              </h4>
+              <p>
+                {isEnglish
+                  ? product.description_en || product.description_ar
+                  : product.description_ar || product.description_en}
+              </p>
+              {!isEnglish && product.description_en && (
+                <p className="text-[11px] text-[#8c827a] font-sans">{product.description_en}</p>
+              )}
 
               <div className="pt-4 grid grid-cols-1 gap-2.5">
                 <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-white border border-[#ece4da]">
                   <Truck className="w-4 h-4 text-[#8a5d3b]" />
-                  <span>شحن سريع لجميع المحافظات مع شحن مجاني فوق 2500 ج.م</span>
+                  <span>
+                    {isEnglish
+                      ? "Fast shipping across Egypt with free shipping over 2,500 EGP"
+                      : "شحن سريع لجميع المحافظات مع شحن مجاني فوق 2500 ج.م"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-white border border-[#ece4da]">
                   <ShieldCheck className="w-4 h-4 text-[#8a5d3b]" />
-                  <span>إمكانية معاينة القطعة وقياسها عند الاستلام قبل الدفع</span>
+                  <span>
+                    {isEnglish
+                      ? "Try before you buy on delivery with inspection before payment"
+                      : "إمكانية معاينة القطعة وقياسها عند الاستلام قبل الدفع"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-white border border-[#ece4da]">
                   <RotateCcw className="w-4 h-4 text-[#8a5d3b]" />
-                  <span>سياسة استبدال ميسرة خلال 14 يوماً من الاستلام</span>
+                  <span>
+                    {isEnglish
+                      ? "Easy 14-day exchange & return policy"
+                      : "سياسة استبدال ميسرة خلال 14 يوماً من الاستلام"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -478,7 +555,7 @@ export default function ProductDetails() {
               <button
                 type="button"
                 onClick={() => setShowVideoModal(false)}
-                className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/90 transition"
+                className={`absolute top-4 ${isEnglish ? "right-4" : "left-4"} z-20 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/90 transition`}
               >
                 <X size={20} />
               </button>
@@ -508,8 +585,10 @@ export default function ProductDetails() {
               {/* Modal Bottom Bar */}
               <div className="p-4 bg-[#1c1817] text-white flex items-center justify-between">
                 <div>
-                  <h4 className="font-serif font-bold text-sm">{product.name_ar}</h4>
-                  <span className="text-xs text-[#e6b980]">{product.price.toLocaleString("ar-EG")} ج.م</span>
+                  <h4 className="font-bold text-sm" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>{currentProductName}</h4>
+                  <span className="text-xs text-[#e6b980]">
+                    {product.price.toLocaleString(isEnglish ? "en-US" : "ar-EG")} {isEnglish ? "EGP" : "ج.م"}
+                  </span>
                 </div>
                 <Button
                   onClick={() => {
@@ -519,8 +598,8 @@ export default function ProductDetails() {
                   disabled={isOutOfStock}
                   className="bg-[#8a5d3b] hover:bg-[#a7734c] text-white text-xs h-9 rounded-xl font-bold"
                 >
-                  <ShoppingBag size={14} className="ml-1" />
-                  <span>إضافة للسلة</span>
+                  <ShoppingBag size={14} className={isEnglish ? "mr-1" : "ml-1"} />
+                  <span>{isEnglish ? "Add to Bag" : "إضافة للسلة"}</span>
                 </Button>
               </div>
             </div>
@@ -531,11 +610,11 @@ export default function ProductDetails() {
         {related.length > 0 && (
           <div className="mt-20 pt-12 border-t border-[#ece4da]">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-2xl font-serif font-bold text-[#1c1817]">
-                قطع قد تعجبكِ أيضاً
+              <h3 className="text-2xl font-bold text-[#1c1817]" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
+                {isEnglish ? "You May Also Like" : "قطع قد تعجبكِ أيضاً"}
               </h3>
-              <Link to={`/shop?category=${product.category_slug}`} className="text-xs font-bold text-[#8a5d3b] hover:text-[#1c1817]">
-                مشاهدة المزيد في هذا القسم
+              <Link to={`/shop?category=${encodeURIComponent(product.category_slug)}`} className="text-xs font-bold text-[#8a5d3b] hover:text-[#1c1817]">
+                {isEnglish ? "View more in this category →" : "مشاهدة المزيد في هذا القسم ←"}
               </Link>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">

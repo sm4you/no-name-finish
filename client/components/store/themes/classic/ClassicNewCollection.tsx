@@ -17,7 +17,10 @@ export function ClassicNewCollection() {
       <div className="mx-auto max-w-[1240px]">
         <div className="flex items-baseline justify-between mb-8">
           <div>
-            <h2 className="font-times text-3xl font-bold tracking-wider text-[#1c1817]">
+            <h2
+              className="text-3xl font-bold tracking-wider text-[#1c1817]"
+              style={{ fontFamily: "'Times New Roman', Times, serif" }}
+            >
               {sections.arrivals?.title || (isEnglish ? "New Collection" : "وصل حديثاً")}
             </h2>
             <p className="text-xs text-[#1c2822]/60 mt-1">

@@ -1,56 +1,56 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Play, Pause, Volume2, VolumeX, ShoppingBag, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { Volume2, VolumeX, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { useStore } from "@/components/store/StoreLayout";
 import { DiscoverVideoItem } from "@shared/api";
 
-const defaultDiscoverVideos: DiscoverVideoItem[] = [
+export const defaultDiscoverVideos: DiscoverVideoItem[] = [
   {
     id: "v1",
     title: "Daytime Linen Collection",
     titleAr: "إطلالات الكتان النهاري",
     image: "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=600&q=80",
-    video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    video: "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-posing-in-a-studio-setting-42289-large.mp4",
     link: "/shop?category=Sets",
   },
   {
     id: "v2",
-    title: "City Walks & Flowy Dresses",
-    titleAr: "فساتين المشاوير اليومية",
-    image: "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=600&q=80",
-    video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+    title: "Flowy Dresses & Movement",
+    titleAr: "حركة وأناقة الفساتين",
+    image: "https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=600&q=80",
+    video: "https://assets.mixkit.co/videos/preview/mixkit-woman-turning-while-wearing-a-dress-41870-large.mp4",
     link: "/shop?category=Dresses",
   },
   {
     id: "v3",
-    title: "Evening Chic & Modest Looks",
-    titleAr: "أناقة السهرات الراقية",
-    image: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&q=80",
-    video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+    title: "Summer Walk Lookbook",
+    titleAr: "إطلالة الصيف العصرية",
+    image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80",
+    video: "https://assets.mixkit.co/videos/preview/mixkit-model-walking-in-a-summer-dress-41871-large.mp4",
     link: "/shop?collection=new",
   },
   {
     id: "v4",
-    title: "Relaxed Fit Sets & Pants",
-    titleAr: "الأطقم الواسعة المريحة",
-    image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80",
-    video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4",
-    link: "/shop?category=Skirts%20%2F%20pants",
+    title: "Minimal Chic & Modest Wear",
+    titleAr: "أناقة بسيطة ومحتشمة",
+    image: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&q=80",
+    video: "https://assets.mixkit.co/videos/preview/mixkit-woman-in-a-turtleneck-sweater-posing-for-the-camera-42790-large.mp4",
+    link: "/shop?category=Blouses%20%2F%20shirts",
   },
   {
     id: "v5",
-    title: "Summer Breeze & Scarves",
-    titleAr: "أناقة الصيف والشالات الخفيفة",
-    image: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&q=80",
-    video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-    link: "/shop?category=Scarves",
+    title: "Everyday Modest Elegance",
+    titleAr: "أناقة الإطلالات اليومية",
+    image: "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=600&q=80",
+    video: "https://assets.mixkit.co/videos/preview/mixkit-a-stylish-woman-in-an-autumn-outfit-posing-in-a-park-42784-large.mp4",
+    link: "/shop?category=Skirts%20%2F%20pants",
   },
   {
     id: "v6",
-    title: "Classic Earth Tones",
-    titleAr: "درجات الألوان الترابية الكلاسيكية",
-    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&q=80",
-    video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+    title: "Studio Editorial Reel",
+    titleAr: "جلسة تصوير حصرية",
+    image: "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=600&q=80",
+    video: "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-posing-in-neon-lights-42290-large.mp4",
     link: "/shop?collection=bestsellers",
   },
 ];
@@ -66,151 +66,99 @@ function DiscoverCard({
 }) {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   const [isMuted, setIsMuted] = useState(true);
-  const [isHovered, setIsHovered] = useState(false);
 
-  // Toggle video play / pause directly in the card without any popup modal
-  const toggleInlinePlay = (e: React.MouseEvent) => {
+  // Auto-play the video continuously on load and when entering viewport
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = true;
+    const tryPlay = () => {
+      video.play().catch(() => {
+        // Autoplay policy fallback: keep muted and retry on interaction
+      });
+    };
+
+    tryPlay();
+
+    // IntersectionObserver to ensure playback when visible
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            video.play().catch(() => {});
+          }
+        });
+      },
+      { threshold: 0.25 }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  // Toggle Mute / Sound Only
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
     e.preventDefault();
-    if (isDragging) return;
     if (!videoRef.current) return;
+    const nextMuted = !videoRef.current.muted;
+    videoRef.current.muted = nextMuted;
+    setIsMuted(nextMuted);
+  };
 
-    if (videoRef.current.paused) {
-      const playPromise = videoRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-          })
-          .catch(() => {
-            if (videoRef.current) {
-              videoRef.current.muted = true;
-              setIsMuted(true);
-              videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
-            }
-          });
-      }
-    } else {
-      videoRef.current.pause();
-      setIsPlaying(false);
+  const handleCardClick = () => {
+    if (isDragging) return;
+    if (item.link) {
+      navigate(item.link);
     }
   };
 
-  const toggleInlineMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!videoRef.current) return;
-    videoRef.current.muted = !videoRef.current.muted;
-    setIsMuted(videoRef.current.muted);
-  };
-
-  const handleShopThisLook = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isDragging) return;
-    navigate(item.link || "/shop");
-  };
-
-  const title = isEnglish ? item.title : item.titleAr || item.title;
-
   return (
     <div
-      className="group relative w-[240px] sm:w-[270px] md:w-[290px] aspect-[9/16] flex-shrink-0 snap-start rounded-2xl overflow-hidden bg-neutral-900 shadow-md cursor-pointer select-none transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5 border border-black/10"
-      onClick={toggleInlinePlay}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      ref={cardRef}
+      className="group relative w-[230px] sm:w-[260px] md:w-[280px] aspect-[9/16] flex-shrink-0 snap-start rounded-2xl sm:rounded-3xl overflow-hidden bg-neutral-900 shadow-md cursor-pointer select-none transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5 border border-black/10"
+      onClick={handleCardClick}
     >
-      {/* Inline Video Player */}
+      {/* Continuous Auto-Playing Promotional Video */}
       <video
         ref={videoRef}
+        src={item.video}
         poster={item.image}
+        autoPlay
         playsInline
         muted={isMuted}
         loop
-        preload="metadata"
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        preload="auto"
         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-      >
-        <source src={item.video} type="video/mp4" />
-        <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4" />
-      </video>
-
-      {/* Dark overlay gradients */}
-      <div
-        className={`absolute inset-0 transition-opacity duration-300 pointer-events-none ${
-          isPlaying
-            ? "bg-gradient-to-t from-black/85 via-black/15 to-black/30"
-            : "bg-gradient-to-t from-black/80 via-black/20 to-black/40"
-        }`}
       />
 
-      {/* Center Play / Pause Indicator */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div
-          className={`w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-white/95 text-[#1c1817] flex items-center justify-center shadow-2xl backdrop-blur-sm transition-all duration-300 ${
-            isPlaying
-              ? isHovered
-                ? "opacity-90 scale-100"
-                : "opacity-0 scale-75"
-              : "opacity-95 scale-100 shadow-black/40 animate-pulse"
-          }`}
-        >
-          {isPlaying ? (
-            <Pause size={20} fill="currentColor" />
-          ) : (
-            <Play size={20} fill="currentColor" className="ml-1 text-[#1c1817]" />
-          )}
-        </div>
-      </div>
+      {/* Subtle bottom shadow gradient to elevate the look */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
 
-      {/* Top Bar: Reel Tag & Mute Button */}
-      <div className="absolute top-3 inset-x-3 flex items-center justify-between z-10">
-        <div className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white font-medium flex items-center gap-1.5 shadow-sm border border-white/10">
-          <span className={`w-1.5 h-1.5 rounded-full ${isPlaying ? "bg-emerald-400 animate-ping" : "bg-[#d4775c]"}`} />
-          <span className="tracking-wider">REEL</span>
-        </div>
-
-        {isPlaying && (
-          <button
-            type="button"
-            onClick={toggleInlineMute}
-            className="w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-md transition shadow-sm border border-white/10"
-            aria-label={isMuted ? "Unmute sound" : "Mute sound"}
-            title={isMuted ? "تشغيل الصوت" : "كتم الصوت"}
-          >
-            {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-          </button>
+      {/* Only Sound / Mute Toggle Button */}
+      <button
+        type="button"
+        onClick={toggleMute}
+        className={`absolute bottom-3.5 ${
+          isEnglish ? "right-3.5" : "left-3.5"
+        } w-10 h-10 rounded-full bg-black/55 hover:bg-black/85 text-white flex items-center justify-center backdrop-blur-md transition-all duration-200 shadow-lg border border-white/20 hover:scale-110 active:scale-95 cursor-pointer z-20`}
+        aria-label={isMuted ? "تشغيل الصوت" : "كتم الصوت"}
+        title={isMuted ? (isEnglish ? "Unmute" : "تشغيل الصوت") : (isEnglish ? "Mute" : "كتم الصوت")}
+      >
+        {isMuted ? (
+          <VolumeX size={17} className="text-white/90" />
+        ) : (
+          <Volume2 size={17} className="text-white animate-pulse" />
         )}
-      </div>
-
-      {/* Bottom Information & Shop This Look Button */}
-      <div className="absolute bottom-3.5 inset-x-3.5 z-10 flex flex-col gap-2">
-        <div className="text-center">
-          <span className="block text-white font-serif font-bold text-sm sm:text-base drop-shadow line-clamp-1">
-            {title}
-          </span>
-          <span className="text-[10px] text-white/70 block mt-0.5">
-            {isPlaying
-              ? isEnglish
-                ? "Click to pause"
-                : "انقري لإيقاف الفيديو"
-              : isEnglish
-              ? "Click to play"
-              : "انقري لتشغيل الفيديو"}
-          </span>
-        </div>
-
-        {/* Shop This Look Button (Navigates directly to product) */}
-        <button
-          type="button"
-          onClick={handleShopThisLook}
-          className="w-full py-2 px-3 rounded-xl bg-white text-[#1c1817] hover:bg-[#d4775c] hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition-all duration-200 active:scale-95 cursor-pointer"
-          title={isEnglish ? "Shop this look" : "تسوقي الإطلالة"}
-        >
-          <ShoppingBag size={13} />
-          <span>{isEnglish ? "Shop this look" : "تسوقي الإطلالة"}</span>
-        </button>
-      </div>
+      </button>
     </div>
   );
 }
@@ -225,50 +173,19 @@ export function ClassicDiscover() {
   const [scrollLeftState, setScrollLeftState] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-
   const items: DiscoverVideoItem[] =
     siteSettings.discoverItems && siteSettings.discoverItems.length > 0
       ? siteSettings.discoverItems
       : defaultDiscoverVideos;
 
-  const updateScrollButtons = () => {
-    if (!scrollContainerRef.current) return;
-    const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-    
-    // In RTL mode, scrollLeft can be negative or 0 depending on browser
-    const maxScroll = scrollWidth - clientWidth;
-    const absScroll = Math.abs(scrollLeft);
-
-    setCanScrollLeft(absScroll > 10);
-    setCanScrollRight(absScroll < maxScroll - 10);
-  };
-
-  useEffect(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-
-    updateScrollButtons();
-    el.addEventListener("scroll", updateScrollButtons, { passive: true });
-    window.addEventListener("resize", updateScrollButtons);
-
-    return () => {
-      el.removeEventListener("scroll", updateScrollButtons);
-      window.removeEventListener("resize", updateScrollButtons);
-    };
-  }, [items]);
-
   const handleScroll = (direction: "left" | "right") => {
     if (!scrollContainerRef.current) return;
     const container = scrollContainerRef.current;
-    const scrollAmount = 320;
-    
-    // Check direction based on RTL vs LTR
+    const scrollAmount = 300;
+
     const isRtl = !isEnglish;
     let delta = direction === "right" ? scrollAmount : -scrollAmount;
     if (isRtl) {
-      // In RTL, left arrow moves visually left, right arrow moves visually right
       delta = direction === "left" ? -scrollAmount : scrollAmount;
     }
 
@@ -288,7 +205,7 @@ export function ClassicDiscover() {
     if (!isMouseDown || !scrollContainerRef.current) return;
     e.preventDefault();
     const x = e.pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5; // Scroll speed multiplier
+    const walk = (x - startX) * 1.5;
     if (Math.abs(walk) > 5) {
       setIsDragging(true);
     }
@@ -301,23 +218,23 @@ export function ClassicDiscover() {
   };
 
   return (
-    <section className="bg-white py-16 border-b border-[#1c2822]/10 overflow-hidden">
+    <section className="bg-white py-14 sm:py-18 border-b border-[#1c2822]/10 overflow-hidden">
       <div className="mx-auto max-w-[1360px] px-5 lg:px-8">
         {/* Header with Navigation Controls */}
         <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
           <div className="text-center sm:text-start">
             <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.25em] text-[#8a5d3b] font-bold mb-1">
               <Sparkles size={14} />
-              <span>{isEnglish ? "Video Lookbook" : "فيديوهات الإطلالات"}</span>
+              <span>VIDEO LOOKBOOK</span>
             </div>
-            <h2 className="font-times text-2xl sm:text-3xl font-bold tracking-wider text-[#1c1817]">
-              {sections.discover?.title || (isEnglish ? "Discover your style" : "اكتشفي أسلوبكِ")}
+            <h2
+              className="text-2xl sm:text-3xl font-bold tracking-wider text-[#1c1817]"
+              style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
+            >
+              {sections.discover?.title || (isEnglish ? "Discover your style" : "Discover your style")}
             </h2>
             <p className="text-xs text-[#1c2822]/60 mt-1 max-w-md">
-              {sections.discover?.description ||
-                (isEnglish
-                  ? "Swipe or drag horizontally. Tap any video to play directly and shop the look."
-                  : "مرري يميناً ويساراً بالماوس أو اللمس. انقري على أي فيديو لتشغيله وتسوق الإطلالة.")}
+              {sections.discover?.description || (isEnglish ? "Explore the latest looks." : "Explore the latest looks.")}
             </p>
           </div>
 
@@ -326,7 +243,7 @@ export function ClassicDiscover() {
             <button
               type="button"
               onClick={() => handleScroll("left")}
-              className="w-10 h-10 rounded-full border border-[#1c1817]/20 bg-white hover:bg-[#1c1817] hover:text-white text-[#1c1817] flex items-center justify-center transition-all duration-200 shadow-sm active:scale-95 cursor-pointer disabled:opacity-40"
+              className="w-10 h-10 rounded-full border border-[#1c1817]/20 bg-white hover:bg-[#1c1817] hover:text-white text-[#1c1817] flex items-center justify-center transition-all duration-200 shadow-sm active:scale-95 cursor-pointer"
               aria-label={isEnglish ? "Previous videos" : "الفيديوهات السابقة"}
               title={isEnglish ? "Scroll Left" : "تمرير لليسار"}
             >
@@ -335,7 +252,7 @@ export function ClassicDiscover() {
             <button
               type="button"
               onClick={() => handleScroll("right")}
-              className="w-10 h-10 rounded-full border border-[#1c1817]/20 bg-white hover:bg-[#1c1817] hover:text-white text-[#1c1817] flex items-center justify-center transition-all duration-200 shadow-sm active:scale-95 cursor-pointer disabled:opacity-40"
+              className="w-10 h-10 rounded-full border border-[#1c1817]/20 bg-white hover:bg-[#1c1817] hover:text-white text-[#1c1817] flex items-center justify-center transition-all duration-200 shadow-sm active:scale-95 cursor-pointer"
               aria-label={isEnglish ? "Next videos" : "الفيديوهات التالية"}
               title={isEnglish ? "Scroll Right" : "تمرير لليمين"}
             >
@@ -344,7 +261,7 @@ export function ClassicDiscover() {
           </div>
         </div>
 
-        {/* Horizontal Scrollable Reel Track (Touch Swipe + Mouse Drag) */}
+        {/* Horizontal Scrollable Reel Track */}
         <div
           ref={scrollContainerRef}
           onMouseDown={handleMouseDown}
@@ -372,5 +289,3 @@ export function ClassicDiscover() {
     </section>
   );
 }
-
-

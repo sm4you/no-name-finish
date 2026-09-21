@@ -38,7 +38,7 @@ function CollectionShelf({
       <div className="mx-auto max-w-[1240px] px-5 lg:px-8">
         <div className="flex items-end justify-between mb-6">
           <div>
-            <h2 className="font-times text-2xl font-bold text-[#1c1817] tracking-wider">{title}</h2>
+            <h2 className="text-2xl font-bold text-[#1c1817] tracking-wider" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>{title}</h2>
             <Link
               to={`/shop?category=${encodeURIComponent(category)}`}
               className="text-xs text-[#8a5d3b] hover:underline font-medium mt-1 inline-block"
@@ -97,32 +97,32 @@ export function ClassicShelves() {
   return (
     <>
       <CollectionShelf
-        title={isEnglish ? "Sets" : "الأطقم"}
+        title="Sets"
         category="أطقم"
         products={sets}
         isEnglish={isEnglish}
       />
       <CollectionShelf
-        title={isEnglish ? "Blouses / shirts" : "البلوزات والقمصان"}
+        title="Blouses / shirts"
         category="توبس"
         products={tops}
         isEnglish={isEnglish}
       />
       <CollectionShelf
-        title={isEnglish ? "Skirts / pants" : "التنانير والبناطيل"}
+        title="Skirts / pants"
         category="بنطال"
         products={pants}
         isEnglish={isEnglish}
       />
       <CollectionShelf
-        title={isEnglish ? "Dresses" : "الفساتين"}
+        title="Dresses"
         category="فساتين"
         products={dresses}
         isEnglish={isEnglish}
       />
       {denims.length > 0 && (
         <CollectionShelf
-          title={isEnglish ? "Denims" : "الجينز والدنيم"}
+          title="Denims"
           category="جينز"
           products={denims}
           isEnglish={isEnglish}

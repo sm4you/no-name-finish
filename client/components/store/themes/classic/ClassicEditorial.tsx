@@ -33,7 +33,10 @@ export function ClassicEditorial() {
           </span>
         </div>
 
-        <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold tracking-wide text-white leading-tight sm:leading-tight drop-shadow-md max-w-3xl mx-auto">
+        <h2
+          className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-wide text-white leading-tight sm:leading-tight drop-shadow-md max-w-3xl mx-auto"
+          style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
+        >
           {sections.editorial?.title || (isEnglish ? "Effortless style & Timeless Grace" : "أناقة عفوية.. وجمال يدوم")}
         </h2>
 
